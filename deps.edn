@@ -1,0 +1,6 @@
+{:paths ["src"]
+ :deps  {pdfboxing/pdfboxing {:mvn/version "0.1.14"}
+         scicloj/tablecloth {:mvn/version "7.021"}
+         clj-http/clj-http {:mvn/version "3.12.3"}}
+ :aliases 
+ {:neil {:project {:name hiqa-reports/hiqa-reports}}}}
