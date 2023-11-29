@@ -36,3 +36,18 @@
 ;; 3,153 Reports
 ;; 500K size avg ...
 ;; Around 1.5 GB total estimated
+
+
+;; Getting extra info about the reports from filenames
+
+(def filename-date-matcher #"(\d{1,2})-(\w+)-(\d{4})")
+
+(def report-list-by-year
+  (reduce (fn [result report-url]
+            (let [[_ _ _ year] (re-find filename-date-matcher report-url)]
+              (if year
+                (update result (keyword year) (fnil conj []) report-url)
+                (update result :missing (fnil conj []) report-url))))
+          {}
+          report-list))
+
