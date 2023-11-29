@@ -3,6 +3,7 @@
          scicloj/tablecloth {:mvn/version "7.021"}
          clj-http/clj-http {:mvn/version "3.12.3"}
          io.github.nextjournal/clerk {:mvn/version "0.15.957"}
-         clojure.java-time/clojure.java-time {:mvn/version "1.4.2"}}
+         clojure.java-time/clojure.java-time {:mvn/version "1.4.2"}
+         cheshire/cheshire {:mvn/version "5.12.0"}}
  :aliases 
  {:neil {:project {:name hiqa-reports/hiqa-reports}}}}
