@@ -8,21 +8,21 @@
 
 (def destination-dir "inspection_reports/")
 
-(:body (http/get
-        (first
-         (-> hiqa-reg-tbl
-             :reports
-             first
-             clojure.edn/read-string))))
+(defn- fetch-pdf!
+  "makes an HTTP request and fetches the binary object"
+  [url]
+  (let [req (http/get url {:as :byte-array :throw-exceptions false})]
+    (when (= (:status req) 200)
+      (:body req))))
 
-(defn download [uri file]
-  (with-open [in (io/input-stream uri)
-              out (io/output-stream file)]
-    (io/copy in out)))
-
-(defn download-entry [uri]
-  (let [filename (second (str/split (re-find pdf-matcher uri) #"/"))]
-    (download uri (str destination-dir filename))))
+(defn- save-pdf!
+  "downloads and stores the photo on disk"
+  [pdf-link]
+  (let [p (fetch-pdf! pdf-link)]
+    (when (not (nil? p))
+      (let [filename (second (str/split (re-find pdf-matcher pdf-link) #"/"))]
+        (with-open [w (io/output-stream (str destination-dir filename))]
+          (.write w p))))))
 
 (def report-list
   (->> (:reports hiqa-reg-tbl)
@@ -31,12 +31,16 @@
        (remove nil?)))
 
 (comment
-  (count report-list))
+  (count report-list)
+  (time (pmap save-pdf! report-list)))
 
 ;; 3,153 Reports
 ;; 500K size avg ...
 ;; Around 1.5 GB total estimated
-
+;;
+;; Actual reports fetched: 3,098
+;; Sucess rate 98%
+;; Actual size on disk 1.18GB
 
 ;; Getting extra info about the reports from filenames
 
