@@ -1,11 +1,10 @@
 (ns hiqa-reports.hiqa-reports
   (:require
    [clojure.java.io :as io]
+   [clojure.set :as set]
    [clojure.string :as str]
-   [pdfboxing.info :as info]
    [pdfboxing.text :as text]
-   [java.time.api :as jt]
-   [cheshire.core :as json]))
+   [tablecloth.api :as tc]))
 
 ;; For processing the pdf of inspection reports into following format:
 ;;   {:report-id(custom)
@@ -64,6 +63,12 @@
     27 "Protections against infection"
     28 "Fire precautions"
     29 "Medicines and pharmaceutical services"}})
+
+(def capacity-and-capability-nos (keys (:capacity-and-capability hiqa-regulations)))
+
+(def quality-and-safety-nos (keys (:quality-and-safety hiqa-regulations)))
+
+;; Parsing functions
 
 (defn reformat-frontm-id [osvID]
   (->> osvID
@@ -161,32 +166,115 @@
      :compliance-levels compliance
      :observations observations}))
 
-(comment
-  (def test-group (mapv process-pdf all-reports-pdfs)))
+(def test-group (mapv process-pdf all-reports-pdfs))
+
+;; Utilities
+(defn keywordise-when-spaces [string]
+  (if (string? string)
+    (keyword (str/lower-case (str/replace string #" " "")))
+    string))
+
+;; Drafts for analysis
+
+;; Compliance Levels per reg
+
+(defn judgement-for-reg-no [entry reg-no]
+  (:judgement (first (filter #(= reg-no (:reg-no %)) (:compliance-levels entry)))))
 
 (defn compliance-levels-for-reg [entries reg-no]
   (reduce (fn [result entry]
-            (let [regs (:compliance-levels entry)
-                  id (:report-id entry)]
-              (assoc result (keyword id) (:judgement (first (filter #(= reg-no (:reg-no %)) regs))))))
+            (let [id (:report-id entry)]
+              (assoc result (keyword id) (judgement-for-reg-no entry reg-no))))
           {}
           entries))
 
+(defn compliance-levels-table [entries area area-nos]
+  (reduce (fn [tbl reg-no]
+            (conj tbl
+                  (let [area-name area
+                        counts (set/rename-keys (frequencies (vals (compliance-levels-for-reg entries reg-no)))
+                                                {nil :unchecked})]
+                    (into counts
+                          {:area area-name
+                           :regulation (get (area-name hiqa-regulations) reg-no)}))))
+          []
+          area-nos))
+
+
+(defn compliance-levels-table-quality [entries]
+  (compliance-levels-table entries :quality-and-safety quality-and-safety-nos))
+
+(defn compliance-levels-table-capacity [entries]
+  (compliance-levels-table entries :capacity-and-capability capacity-and-capability-nos))
+
+(defn make-compliance-tc-table [entries data-fn]
+  (let [data (data-fn entries)]
+    (-> data
+        (tc/dataset {:key-fn keywordise-when-spaces})
+        (tc/reorder-columns [:area :regulation :compliant]))))
+
+;; Compliance grouping
+;;
+(defn compliance-levels-by-frontmatter-area [entries frontmatter-area reg-no]
+  (reduce (fn [result entry]
+            (let [group      (get (:frontmatter entry) frontmatter-area)
+                  compliance (compliance-levels-for-reg entry reg-no)]
+              (update-in result [group compliance] (fnil + 0) 1)))
+          {}
+          entries))
+
+(defn make-regulation-table
+  "Group is either :provider, :area or :id"
+  [entries reg-no group]
+  (let [extracts
+        (reduce (fn [table entry]
+                  (conj table
+                        (let [fm        (:frontmatter entry)
+                              judgement (judgement-for-reg-no entry reg-no)]
+                          {:id                      (:centre-id entry)
+                           :report-id               (:report-id entry)
+                           :provider                (get fm "Name of provider:")
+                           :area                    (get fm "Address of centre:")
+                           :compliant               (if (= judgement "Compliant") 1 0)
+                           :non-compliant           (if (= judgement "Not compliant") 1 0)
+                           :substantially-compliant (if (= judgement "Substantially compliant") 1 0)})))
+                []
+                entries)]
+    (-> extracts
+        tc/dataset
+        (tc/group-by group)
+        (tc/aggregate {:compliant #(reduce + (% :compliant))
+                       :non-compliant #(reduce + (% :non-compliant))
+                       :substantially-compliant #(reduce + (% :substantially-compliant))})
+        (tc/rename-columns {:$group-name group}))))
+
+
 (comment
-  (frequencies (vals (compliance-levels-for-reg test-group 28))))
+  (make-regulation-table test-group 27 :provider)
+  (compliance-levels-by-frontmatter-area test-group "Name of provider:" 28))
 
 
-          
-  
+;; Frequencies
 
+(defn observations-by-report-id [entries]
+  (reduce #(assoc %1 (keyword (:report-id %2)) (:observations %2)) {} entries))
 
-        
-        
-        
-               
+(def stopwords
+  (str/split-lines
+   (slurp "https://gist.githubusercontent.com/sebleier/554280/raw/7e0e4a1ce04c2bb7bd41089c9821dbcf6d0c786c/NLTK's%2520list%2520of%2520english%2520stopwords")))
+
+;; (reverse
+;;  (sort-by val
+;;           (frequencies
+;;            (remove (set stopwords)
+;;                    (map str/lower-case
+;;                         (str/split
+;;                          (str/replace
+;;                           (str/join (vals (observations-by-report-id test-group)))
+;;                           #"\.|," "")
+;;                          #"\s+"))))))
 
 (comment
   (number-of-residents-present (text/extract (second all-reports-pdfs)))
   (what-residents-told-us (text/extract (first all-reports-pdfs)))
-  (reformat-frontm-id (get (parse-frontmatter (text/extract (last all-reports-pdfs))) "Centre ID:"))
-  (vals (compliance-table (text/extract (second all-reports-pdfs)))))
+  (reformat-frontm-id (get (parse-frontmatter (text/extract (last all-reports-pdfs))) "Centre ID:")))
