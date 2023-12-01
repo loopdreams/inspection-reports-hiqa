@@ -58,6 +58,9 @@
    {:year (name year)
     :number-of-reports c}))
 
+
+;; After downloading the reports, **3,098** (98%) of the URLs suceeded.
+;;
 ;; ## Inspection Reports Format
 ;;
 ;; The key enabling feature for this analysis is that the inspection reports are written in a __standard format__, making them quite easy to parse.
