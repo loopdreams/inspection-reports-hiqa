@@ -35,11 +35,15 @@
   (time (pmap save-pdf! report-list)))
 
 ;; 3,153 Reports
+;;
 ;; 500K size avg ...
+;;
 ;; Around 1.5 GB total estimated
 ;;
 ;; Actual reports fetched: 3,098
+;;
 ;; Sucess rate 98%
+;;
 ;; Actual size on disk 1.18GB
 
 ;; Getting extra info about the reports from filenames
@@ -54,4 +58,3 @@
                 (update result :missing (fnil conj []) report-url))))
           {}
           report-list))
-

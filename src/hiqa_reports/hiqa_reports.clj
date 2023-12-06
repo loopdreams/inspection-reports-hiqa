@@ -1,5 +1,6 @@
 (ns hiqa-reports.hiqa-reports
   (:require
+   [cheshire.core :as json]
    [clojure.java.io :as io]
    [clojure.set :as set]
    [clojure.string :as str]
@@ -16,6 +17,7 @@
 
 
 (def reports-directory (io/file "inspection_reports/"))
+
 (def all-reports-pdfs (rest (file-seq reports-directory)))
 
 (def frontmatter-fields ["Name of designated centre:"
@@ -25,6 +27,14 @@
                          "Date of inspection:"
                          "Centre ID:"
                          "Fieldwork ID:"])
+
+(def frontmatter-fields-keywords [:name-of-designated-centre
+                                  :name-of-provider
+                                  :address-of-centre
+                                  :type-of-inspection
+                                  :date-of-inspection
+                                  :centre-ID-OSV
+                                  :fieldwork-ID])
 
 ;; Regulations info - https://www.hiqa.ie/sites/default/files/2018-02/Assessment-of-centres-DCD_Guidance.pdf
 
@@ -77,14 +87,22 @@
        reverse
        (apply str)))
 
+
 (defn generate-report-id
   "Generate custom report id, based on center ID joined with date of report yyyyMMdd.
-  Date input is based on report frontmatter, example '01 January 1900'"
+  Date input is based on report frontmatter, example '01 January 1900'
+
+  In cases where two dates are listed (eg 08 and 09 of June), second date is used."
+
   [date centre-id]
-  (let [date (.format (java.text.SimpleDateFormat. "yyyyMMdd")
+  (when date
+    (let [d1 (if (re-find #"and" date)
+               (second (str/split date #"and "))
+               date)
+          d2 (.format (java.text.SimpleDateFormat. "yyyyMMdd")
                       (.parse (java.text.SimpleDateFormat. "dd MMMM yyyy")
-                              date))]
-    (str centre-id "-" date)))
+                              d1))]
+      (str centre-id "-" d2))))
 
 (comment
   (generate-report-id "01 December 2021" "7890"))
@@ -99,13 +117,13 @@
                   (take (count frontmatter-fields))
                   reverse
                   (map str/trim))]
-    (zipmap frontmatter-fields info)))
+    (zipmap frontmatter-fields-keywords info)))
 
 (defn number-of-residents-present [pdf-text]
-  (parse-long
-   (re-find #"\d+" (second
-                    (str/split pdf-text
-                               #"Number of residents on the \ndate of inspection:")))))
+  (let [[_ no-of-residents] (str/split pdf-text #"Number of residents on the \ndate of inspection:")]
+    (when no-of-residents
+      (parse-long (re-find #"\d+" no-of-residents)))))
+
 
 (defn what-residents-told-us [pdf-text]
   (str/replace
@@ -124,49 +142,177 @@
       [:capacity-and-capability candidate-a]
       [:quality-and-safety candidate-b])))
 
+
 (defn parse-compliance-table [pdf-text]
-  (for [line (map str/trim
-                  (str/split
-                   (first
-                    (or
-                     (re-find #"Regulation Title(.*)Compliance Plan"
-                              (str/replace pdf-text #"\n" " "))
-                     (re-find #"Regulation Title(.*)" ;; For cases where compliance table is at end of report
-                              (str/replace pdf-text #"\n" " "))))
-                   #"Regulation"))
+  (let [match (or
+               (re-find #"Regulation Title(.*)Compliance Plan"
+                        (str/replace pdf-text #"\n" " "))
+               (re-find #"Regulation Title(.*)" ;; For cases where compliance table is at end of report
+                        (str/replace pdf-text #"\n" " ")))]
+    (when match
+      (for [line (map str/trim (str/split (first match) #"Regulation"))
 
-        :when (int? (parse-long (str (first line))))
+            :when (int? (parse-long (str (first line))))
 
-        :let [[_ reg-no _ judgement] (first (re-seq #"(\d{1,2}):(.*)(Substantially|Not|Compliant)" line))
-              [area reg] (lookup-reg (parse-long reg-no))
-              full-reg (str "Regulation " reg-no ": " reg)
-              full-judgement (case judgement
-                               "Substantially" "Substantially compliant"
-                               "Not" "Not compliant"
-                               "Compliant" "Compliant"
-                               :error)]]
-    {:area       area
-     :reg-no     (parse-long reg-no)
-     :regulation full-reg
-     :judgement  full-judgement}))
+            :let [[_ reg-no _ judgement] (first (re-seq #"(\d{1,2}):(.*)(Substantially|Not|Compliant)" line))
+                  [area reg]  (when reg-no (lookup-reg (parse-long reg-no)))
+                  full-reg (str "Regulation " reg-no ": " reg)
+                  full-judgement (case judgement
+                                   "Substantially" "Substantially compliant"
+                                   "Not"           "Not compliant"
+                                   "Compliant"     "Compliant"
+                                   :error)]]
+        {:area       area
+         :reg-no     (when reg-no (parse-long reg-no))
+         :regulation full-reg
+         :judgement  full-judgement}))))
+
+(defn parse-compliance-table-alt [pdf-text]
+  (let [match (or
+               (re-find #"Regulation Title(.*)Compliance Plan"
+                        (str/replace pdf-text #"\n" " "))
+               (re-find #"Regulation Title(.*)" ;; For cases where compliance table is at end of report
+                        (str/replace pdf-text #"\n" " ")))]
+    (when match
+      (into (sorted-map)
+            (for [line (map str/trim (str/split (first match) #"Regulation"))
+
+                  :when (int? (parse-long (str (first line))))
+
+                  :let [[_ reg-no _ judgement] (first (re-seq #"(\d{1,2}):(.*)(Substantially|Not|Compliant)" line))
+                        reg-label (str "Regulation " reg-no)
+                        full-judgement (case judgement
+                                         "Substantially" "Substantially compliant"
+                                         "Not"           "Not compliant"
+                                         "Compliant"     "Compliant"
+                                         :error)]]
+              [reg-label full-judgement])))))
+
+(comment
+  (map (comp parse-compliance-table-alt text/extract) (take 5 all-reports-pdfs)))
+
+
 
 (defn process-pdf [pdf-file]
   (let [text              (text/extract pdf-file)
         frontmatter       (parse-frontmatter text)
-        centre-id         (reformat-frontm-id (get frontmatter "Centre ID:"))
-        report-id         (generate-report-id (get frontmatter "Date of inspection:")
+        centre-id         (reformat-frontm-id (:centre-ID-OSV frontmatter))
+        report-id         (generate-report-id (:date-of-inspection frontmatter)
                                               centre-id)
         residents-present (number-of-residents-present text)
         compliance        (parse-compliance-table text)
         observations      (what-residents-told-us text)]
-    {:report-id report-id
-     :centre-id (parse-long centre-id)
-     :frontmatter frontmatter
-     :number-of-residents-present residents-present
-     :compliance-levels compliance
-     :observations observations}))
+    (merge frontmatter
+           {:report-id report-id
+            :centre-id (parse-long centre-id)
+            :number-of-residents-present residents-present
+            :compliance-levels compliance
+            :observations observations})))
 
-(def test-group (mapv process-pdf all-reports-pdfs))
+(defn process-pdf-alt [pdf-file]
+  (let [text              (text/extract pdf-file)
+        frontmatter       (parse-frontmatter text)
+        centre-id         (reformat-frontm-id (:centre-ID-OSV frontmatter))
+        report-id         (generate-report-id (:date-of-inspection frontmatter)
+                                              centre-id)
+        residents-present (number-of-residents-present text)
+        compliance        (parse-compliance-table-alt text)
+        observations      (what-residents-told-us text)]
+    (merge
+     frontmatter
+     compliance
+     {:report-id report-id
+      :centre-id (parse-long centre-id)
+      :number-of-residents-present residents-present
+      :observations observations})))
+
+
+
+
+(defn reg-map-cols [type]
+  (fn [rows]
+    (reduce (fn [acc r]
+              (if (= r type)
+                (inc acc)
+                acc))
+            0
+            rows)))
+
+((reg-map-cols "Compliant") ["Compliant"])
+
+(comment
+  (process-pdf-alt (first all-reports-pdfs))
+  (time
+   (let [all-info (pmap process-pdf all-reports-pdfs)]
+     (json/generate-stream all-info (io/writer "outputs/pdf_info.json"))))
+  (time
+   (let [all-info (pmap process-pdf-alt all-reports-pdfs)]
+     (json/generate-stream all-info (io/writer "outputs/pdf_info_alt.json"))))
+  (-> (tc/dataset "outputs/pdf_info_alt.json")
+      (tc/drop-columns ["observations" "fieldwork-ID"])
+      (tc/reorder-columns ["centre-id" "centre-ID-OSV"
+                           "report-id"
+                           "name-of-designated-centre"
+                           "address-of-centre"
+                           "name-of-provider"
+                           "type-of-inspection"
+                           "number-of-residents-present"])
+      (tc/write! "outputs/pdf_info_alt.csv"))
+  (-> (tc/dataset "outputs/pdf_info_alt.csv")
+      (tc/column-names #"Regulation.*"))
+  (let [DS (tc/dataset "outputs/pdf_info_alt.csv")]
+    (-> DS
+        (tc/map-columns :num-compliant
+                        (tc/column-names DS #"Regulation.*")
+                        (fn [& rows]
+                          ((reg-map-cols "Compliant") rows)))
+        (tc/map-columns :num-notcompliant
+                        (tc/column-names DS #"Regulation.*")
+                        (fn [& rows]
+                          ((reg-map-cols "Not compliant") rows)))
+        (tc/map-columns :num-substantiallycompliant
+                        (tc/column-names DS #"Regulation.*")
+                        (fn [& rows]
+                          ((reg-map-cols "Substantially compliant") rows)))
+        (tc/write! "outputs/pdf_info_reglevels.csv"))))
+
+(comment
+  (-> (tc/dataset "outputs/pdf_info_reglevels.csv")
+      (tc/map-columns :total ["num-compliant" "num-notcompliant" "num-substantiallycompliant"]
+                      (fn [& rows]
+                        (reduce + rows)))
+      (tc/map-columns :percent-non ["num-notcompliant" :total]
+                      (fn [not tot]
+                        (if (zero? not) 0
+                            (* 100 (float (/ not tot))))))
+      (tc/group-by "name-of-provider")
+      (tc/aggregate #(float (/ (reduce + (% :percent-non)) (count (% :percent-non)))))
+      (tc/order-by ["summary"] [:desc])))
+
+(comment
+  (-> (tc/dataset "outputs/pdf_info_reglevels.csv")
+      (tc/map-columns :total ["num-compliant" "num-notcompliant" "num-substantiallycompliant"]
+                      (fn [& rows]
+                        (reduce + rows)))
+      (tc/map-columns :percent-com ["num-compliant" :total]
+                      (fn [not tot]
+                        (if (zero? not) 0
+                            (* 100 (float (/ not tot))))))
+      (tc/group-by "name-of-provider")
+      (tc/aggregate #(float (/ (reduce + (% :percent-com)) (count (% :percent-com)))))
+      (tc/order-by ["summary"] [:desc])
+      (tc/print-dataset {:print-line-policy :repl})))
+
+
+;; Number of inspections per centre:
+(frequencies (map (comp count second)
+                  (-> (tc/dataset "outputs/pdf_info_alt.csv")
+                      (tc/group-by "centre-id" {:result-type :as-indexes}))))
+
+;; Elapsed time: 191234.397125 msecs
+;; Elapsed time: 190448.940459 msecs
+
+(def pdf-info (json/parse-string (slurp "outputs/pdf_info.json") true))
 
 ;; Utilities
 (defn keywordise-when-spaces [string]
@@ -213,6 +359,7 @@
         (tc/dataset {:key-fn keywordise-when-spaces})
         (tc/reorder-columns [:area :regulation :compliant]))))
 
+
 ;; Compliance grouping
 ;;
 (defn compliance-levels-by-frontmatter-area [entries frontmatter-area reg-no]
@@ -233,25 +380,26 @@
                               judgement (judgement-for-reg-no entry reg-no)]
                           {:id                      (:centre-id entry)
                            :report-id               (:report-id entry)
-                           :provider                (get fm "Name of provider:")
-                           :area                    (get fm "Address of centre:")
+                           :provider                (:name-of-provider fm)
+                           :area                    (:address-of-centre fm)
                            :compliant               (if (= judgement "Compliant") 1 0)
-                           :non-compliant           (if (= judgement "Not compliant") 1 0)
-                           :substantially-compliant (if (= judgement "Substantially compliant") 1 0)})))
+                           :notcompliant           (if (= judgement "Not compliant") 1 0)
+                           :substantiallycompliant (if (= judgement "Substantially compliant") 1 0)})))
                 []
                 entries)]
     (-> extracts
         tc/dataset
         (tc/group-by group)
         (tc/aggregate {:compliant #(reduce + (% :compliant))
-                       :non-compliant #(reduce + (% :non-compliant))
-                       :substantially-compliant #(reduce + (% :substantially-compliant))})
+                       :notcompliant #(reduce + (% :notcompliant))
+                       :substantiallycompliant #(reduce + (% :substantiallycompliant))})
         (tc/rename-columns {:$group-name group}))))
 
 
 (comment
-  (make-regulation-table test-group 27 :provider)
-  (compliance-levels-by-frontmatter-area test-group "Name of provider:" 28))
+  (->
+   (make-regulation-table pdf-info 23 :area)
+   (tc/order-by [:not-compliant] [:desc])))
 
 
 ;; Frequencies
