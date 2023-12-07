@@ -1,7 +1,7 @@
 (ns hiqa-reports.openai-api
   (:require [wkok.openai-clojure.api :as api]
             [clojure.edn :as edn]
-            [hiqa-reports.hiqa-reports :refer [pdf-info]]))
+            [hiqa-reports.parsers-writers :refer [pdf-info-DB]]))
 
 (def auth (:auth (edn/read-string (slurp "creds.edn"))))
 
@@ -15,7 +15,7 @@
 
 
 (comment
-  (request-keyword-summary (:observations (first pdf-info))))
+  (request-keyword-summary (:observations (first pdf-info-DB))))
 
 ;; Test-run:
 ;; Value: "{:rating \"positive\", :keywords [\"needs\", \"improvements\", \"comfortable\", \"clean\", \"engaging\"], :summary \"Residents were generally satisfied with the service provided, although improvements were needed in certain areas. The staff were observed to be attentive and the premises were well-maintained.\"}"
