@@ -1,24 +1,20 @@
-(ns hiqa-reports.hiqa-reports
+(ns hiqa-reports.parsers-writers
   (:require
    [cheshire.core :as json]
    [clojure.java.io :as io]
-   [clojure.set :as set]
    [clojure.string :as str]
    [pdfboxing.text :as text]
    [tablecloth.api :as tc]))
 
-;; For processing the pdf of inspection reports into following format:
-;;   {:report-id(custom)
-;;    :centre-id int
-;;    :frontmatter {:name ...}
-;;    :no-of-residents-present int
-;;    :compliance {:regulation compliance-level}
-;;    :observations string}}
-
+;; TODO Split file into processing/analysis
 
 (def reports-directory (io/file "inspection_reports/"))
 
 (def all-reports-pdfs (rest (file-seq reports-directory)))
+
+(def full-json-out "outputs/pdf_data_full.json")
+(def json-out "outputs/pdf_data.json")
+(def full-csv-out "outputs/pdf_data_full.csv")
 
 (def frontmatter-fields ["Name of designated centre:"
                          "Name of provider:"
@@ -80,15 +76,16 @@
 
 ;; Parsing functions
 
-(defn reformat-frontm-id [osvID]
+(defn- reformat-frontm-id
+  "Extract ID compatible with 'centre-id' from the longer IDs used in the reports"
+  [osvID]
   (->> osvID
        reverse
        (take 4)
        reverse
        (apply str)))
 
-
-(defn generate-report-id
+(defn- generate-report-id
   "Generate custom report id, based on center ID joined with date of report yyyyMMdd.
   Date input is based on report frontmatter, example '01 January 1900'
 
@@ -107,33 +104,34 @@
 (comment
   (generate-report-id "01 December 2021" "7890"))
 
-(defn parse-frontmatter [pdf-text]
+(defn- parse-frontmatter [pdf-text]
   (let [page-1 (first (rest (str/split pdf-text #"Page")))
-        info (->> frontmatter-fields
-                  (str/join "|")
-                  re-pattern
-                  (str/split (str/replace page-1 #"\n" ""))
-                  reverse
-                  (take (count frontmatter-fields))
-                  reverse
-                  (map str/trim))]
+        info   (->> frontmatter-fields
+                    (str/join "|")
+                    re-pattern
+                    (str/split (str/replace page-1 #"\n" ""))
+                    reverse
+                    (take (count frontmatter-fields))
+                    reverse
+                    (map str/trim))]
     (zipmap frontmatter-fields-keywords info)))
 
-(defn number-of-residents-present [pdf-text]
-  (let [[_ no-of-residents] (str/split pdf-text #"Number of residents on the \ndate of inspection:")]
+(defn- number-of-residents-present [pdf-text]
+  (let [[_ no-of-residents] (str/split pdf-text
+                                       #"Number of residents on the \ndate of inspection:")]
     (when no-of-residents
       (parse-long (re-find #"\d+" no-of-residents)))))
 
-
-(defn what-residents-told-us [pdf-text]
+(defn- what-residents-told-us [pdf-text]
   (str/replace
    (str/trim
     (str/replace
      (second
-      (str/split pdf-text #"What residents told us and what inspectors observed \n|Capacity and capability \n")) #"\n" ""))
+      (str/split pdf-text
+                 #"What residents told us and what inspectors observed \n|Capacity and capability \n")) #"\n" ""))
    #"  Page \d+ of \d+  " ""))
 
-(defn lookup-reg
+(defn- lookup-reg
   "Capturing the area too (capacity or quality)"
   [reg-no]
   (let [candidate-a (get (:capacity-and-capability hiqa-regulations) reg-no)
@@ -142,8 +140,7 @@
       [:capacity-and-capability candidate-a]
       [:quality-and-safety candidate-b])))
 
-
-(defn parse-compliance-table [pdf-text]
+(defn- parse-compliance-table [pdf-text]
   (let [match (or
                (re-find #"Regulation Title(.*)Compliance Plan"
                         (str/replace pdf-text #"\n" " "))
@@ -154,7 +151,9 @@
 
             :when (int? (parse-long (str (first line))))
 
-            :let [[_ reg-no _ judgement] (first (re-seq #"(\d{1,2}):(.*)(Substantially|Not|Compliant)" line))
+            :let [[_ reg-no _ judgement] (-> (re-seq
+                                              #"(\d{1,2}):(.*)(Substantially|Not|Compliant)" line)
+                                             first)
                   [area reg]  (when reg-no (lookup-reg (parse-long reg-no)))
                   full-reg (str "Regulation " reg-no ": " reg)
                   full-judgement (case judgement
@@ -167,7 +166,7 @@
          :regulation full-reg
          :judgement  full-judgement}))))
 
-(defn parse-compliance-table-alt [pdf-text]
+(defn- parse-compliance-table-alt [pdf-text]
   (let [match (or
                (re-find #"Regulation Title(.*)Compliance Plan"
                         (str/replace pdf-text #"\n" " "))
@@ -180,7 +179,7 @@
                   :when (int? (parse-long (str (first line))))
 
                   :let [[_ reg-no _ judgement] (first (re-seq #"(\d{1,2}):(.*)(Substantially|Not|Compliant)" line))
-                        reg-label (str "Regulation " reg-no)
+                        reg-label (str "Regulation_" reg-no)
                         full-judgement (case judgement
                                          "Substantially" "Substantially compliant"
                                          "Not"           "Not compliant"
@@ -192,8 +191,9 @@
   (map (comp parse-compliance-table-alt text/extract) (take 5 all-reports-pdfs)))
 
 
-
-(defn process-pdf [pdf-file]
+(defn- process-pdf
+  "Heirarchical version of output. For 'flat' version see 'process-pdf-alt'"
+  [pdf-file]
   (let [text              (text/extract pdf-file)
         frontmatter       (parse-frontmatter text)
         centre-id         (reformat-frontm-id (:centre-ID-OSV frontmatter))
@@ -209,72 +209,109 @@
             :compliance-levels compliance
             :observations observations})))
 
-(defn process-pdf-alt [pdf-file]
+(defn- year-from-DOI [date-of-inspection]
+  (when date-of-inspection
+    (parse-long
+     (re-find #"\d{4}" date-of-inspection))))
+
+(defn- process-pdf-alt [pdf-file]
   (let [text              (text/extract pdf-file)
         frontmatter       (parse-frontmatter text)
         centre-id         (reformat-frontm-id (:centre-ID-OSV frontmatter))
         report-id         (generate-report-id (:date-of-inspection frontmatter)
                                               centre-id)
+        year              (year-from-DOI (:date-of-inspection frontmatter))
         residents-present (number-of-residents-present text)
         compliance        (parse-compliance-table-alt text)
         observations      (what-residents-told-us text)]
     (merge
      frontmatter
      compliance
-     {:report-id report-id
-      :centre-id (parse-long centre-id)
+     {:report-id                   report-id
+      :centre-id                   (parse-long centre-id)
       :number-of-residents-present residents-present
-      :observations observations})))
+      :observations                observations
+      :year                        year})))
 
+;; File Outputs
 
+(defn process-pdfs-to-json! [process-fn out]
+  (let [data (pmap process-fn all-reports-pdfs)]
+    (json/generate-stream data (io/writer out))))
 
-
-(defn reg-map-cols [type]
-  (fn [rows]
-    (reduce (fn [acc r]
-              (if (= r type)
-                (inc acc)
-                acc))
-            0
-            rows)))
-
-((reg-map-cols "Compliant") ["Compliant"])
-
-(comment
-  (process-pdf-alt (first all-reports-pdfs))
-  (time
-   (let [all-info (pmap process-pdf all-reports-pdfs)]
-     (json/generate-stream all-info (io/writer "outputs/pdf_info.json"))))
-  (time
-   (let [all-info (pmap process-pdf-alt all-reports-pdfs)]
-     (json/generate-stream all-info (io/writer "outputs/pdf_info_alt.json"))))
-  (-> (tc/dataset "outputs/pdf_info_alt.json")
-      (tc/drop-columns ["observations" "fieldwork-ID"])
+;; TODO Come back and look into the single nil value in centre-id (dropped in the fn below)
+(defn full-csv-write! []
+  (-> (tc/dataset full-json-out)
       (tc/reorder-columns ["centre-id" "centre-ID-OSV"
+                           "year"
+                           "date-of-inspection"
                            "report-id"
                            "name-of-designated-centre"
                            "address-of-centre"
                            "name-of-provider"
                            "type-of-inspection"
                            "number-of-residents-present"])
-      (tc/write! "outputs/pdf_info_alt.csv"))
-  (-> (tc/dataset "outputs/pdf_info_alt.csv")
-      (tc/column-names #"Regulation.*"))
-  (let [DS (tc/dataset "outputs/pdf_info_alt.csv")]
-    (-> DS
-        (tc/map-columns :num-compliant
-                        (tc/column-names DS #"Regulation.*")
-                        (fn [& rows]
-                          ((reg-map-cols "Compliant") rows)))
-        (tc/map-columns :num-notcompliant
-                        (tc/column-names DS #"Regulation.*")
-                        (fn [& rows]
-                          ((reg-map-cols "Not compliant") rows)))
-        (tc/map-columns :num-substantiallycompliant
-                        (tc/column-names DS #"Regulation.*")
-                        (fn [& rows]
-                          ((reg-map-cols "Substantially compliant") rows)))
-        (tc/write! "outputs/pdf_info_reglevels.csv"))))
+      (tc/drop-missing "centre-id")
+      (tc/write! full-csv-out)))
+
+
+
+(defn reg-map-cols
+  "Returns function for use with Tablecloth, for summarising compliance levels."
+  [type]
+  (fn [rows]
+    (reduce #(if (= %2 type) (inc %1) %1) 0 rows)))
+
+;; Datasets
+
+
+(def DS_pdf_info
+  (-> (tc/dataset full-csv-out {:key-fn keyword})))
+
+(tc/column-names DS_pdf_info #":Regulation.*")
+
+(def DS_pdf_info_compliance
+  (-> DS_pdf_info
+      (tc/map-columns :num-compliant
+                      (tc/column-names DS_pdf_info #":Regulation.*")
+                      (fn [& rows]
+                        ((reg-map-cols "Compliant") rows)))
+      (tc/map-columns :num-notcompliant
+                      (tc/column-names DS_pdf_info #":Regulation.*")
+                      (fn [& rows]
+                        ((reg-map-cols "Not compliant") rows)))
+      (tc/map-columns :num-substantiallycompliant
+                      (tc/column-names DS_pdf_info #":Regulation.*")
+                      (fn [& rows]
+                        ((reg-map-cols "Substantially compliant") rows)))
+      (tc/map-columns :total [:num-compliant :num-notcompliant :num-substantiallycompliant]
+                          (fn [& rows]
+                            (reduce + rows)))
+      (tc/map-columns :percent-noncompliant [:num-notcompliant :total]
+                      (fn [non tot]
+                        (if (zero? non) 0
+                            (* 100 (float (/ non tot))))))
+      (tc/map-columns :percent-fully-compliant [:num-compliant :total]
+                      (fn [com tot]
+                        (if (zero? com) 0
+                            (* 100 (float (/ com tot))))))))
+
+
+;; TODO Implement some of these when finalised
+(comment
+
+  (time
+   (process-pdfs-to-json! process-pdf "outputs/pdf_info.json"))
+  (time
+   (process-pdfs-to-json! process-pdf-alt full-json-out))
+  ;; "Elapsed time: 184113.473958 msecs"
+  ;; Elapsed time: 181533.344375 msecs
+  ;; 3 mins
+
+  (full-csv-write!))
+  ;; 3098
+
+
 
 (comment
   (-> (tc/dataset "outputs/pdf_info_reglevels.csv")
@@ -304,125 +341,19 @@
       (tc/print-dataset {:print-line-policy :repl})))
 
 
+;;; *** End of parsing/generation functions
+
 ;; Number of inspections per centre:
-(frequencies (map (comp count second)
-                  (-> (tc/dataset "outputs/pdf_info_alt.csv")
-                      (tc/group-by "centre-id" {:result-type :as-indexes}))))
+(comment
+  (->>
+   (-> (tc/dataset "outputs/pdf_info_alt.csv")
+       (tc/group-by "centre-id" {:result-type :as-indexes}))
+   (map (comp count second))
+   frequencies))
+
 
 ;; Elapsed time: 191234.397125 msecs
 ;; Elapsed time: 190448.940459 msecs
 
-(def pdf-info (json/parse-string (slurp "outputs/pdf_info.json") true))
+(def pdf-info-DB (json/parse-string (slurp "outputs/pdf_info.json") true))
 
-;; Utilities
-(defn keywordise-when-spaces [string]
-  (if (string? string)
-    (keyword (str/lower-case (str/replace string #" " "")))
-    string))
-
-;; Drafts for analysis
-
-;; Compliance Levels per reg
-
-(defn judgement-for-reg-no [entry reg-no]
-  (:judgement (first (filter #(= reg-no (:reg-no %)) (:compliance-levels entry)))))
-
-(defn compliance-levels-for-reg [entries reg-no]
-  (reduce (fn [result entry]
-            (let [id (:report-id entry)]
-              (assoc result (keyword id) (judgement-for-reg-no entry reg-no))))
-          {}
-          entries))
-
-(defn compliance-levels-table [entries area area-nos]
-  (reduce (fn [tbl reg-no]
-            (conj tbl
-                  (let [area-name area
-                        counts (set/rename-keys (frequencies (vals (compliance-levels-for-reg entries reg-no)))
-                                                {nil :unchecked})]
-                    (into counts
-                          {:area area-name
-                           :regulation (get (area-name hiqa-regulations) reg-no)}))))
-          []
-          area-nos))
-
-
-(defn compliance-levels-table-quality [entries]
-  (compliance-levels-table entries :quality-and-safety quality-and-safety-nos))
-
-(defn compliance-levels-table-capacity [entries]
-  (compliance-levels-table entries :capacity-and-capability capacity-and-capability-nos))
-
-(defn make-compliance-tc-table [entries data-fn]
-  (let [data (data-fn entries)]
-    (-> data
-        (tc/dataset {:key-fn keywordise-when-spaces})
-        (tc/reorder-columns [:area :regulation :compliant]))))
-
-
-;; Compliance grouping
-;;
-(defn compliance-levels-by-frontmatter-area [entries frontmatter-area reg-no]
-  (reduce (fn [result entry]
-            (let [group      (get (:frontmatter entry) frontmatter-area)
-                  compliance (compliance-levels-for-reg entry reg-no)]
-              (update-in result [group compliance] (fnil + 0) 1)))
-          {}
-          entries))
-
-(defn make-regulation-table
-  "Group is either :provider, :area or :id"
-  [entries reg-no group]
-  (let [extracts
-        (reduce (fn [table entry]
-                  (conj table
-                        (let [fm        (:frontmatter entry)
-                              judgement (judgement-for-reg-no entry reg-no)]
-                          {:id                      (:centre-id entry)
-                           :report-id               (:report-id entry)
-                           :provider                (:name-of-provider fm)
-                           :area                    (:address-of-centre fm)
-                           :compliant               (if (= judgement "Compliant") 1 0)
-                           :notcompliant           (if (= judgement "Not compliant") 1 0)
-                           :substantiallycompliant (if (= judgement "Substantially compliant") 1 0)})))
-                []
-                entries)]
-    (-> extracts
-        tc/dataset
-        (tc/group-by group)
-        (tc/aggregate {:compliant #(reduce + (% :compliant))
-                       :notcompliant #(reduce + (% :notcompliant))
-                       :substantiallycompliant #(reduce + (% :substantiallycompliant))})
-        (tc/rename-columns {:$group-name group}))))
-
-
-(comment
-  (->
-   (make-regulation-table pdf-info 23 :area)
-   (tc/order-by [:not-compliant] [:desc])))
-
-
-;; Frequencies
-
-(defn observations-by-report-id [entries]
-  (reduce #(assoc %1 (keyword (:report-id %2)) (:observations %2)) {} entries))
-
-(def stopwords
-  (str/split-lines
-   (slurp "https://gist.githubusercontent.com/sebleier/554280/raw/7e0e4a1ce04c2bb7bd41089c9821dbcf6d0c786c/NLTK's%2520list%2520of%2520english%2520stopwords")))
-
-;; (reverse
-;;  (sort-by val
-;;           (frequencies
-;;            (remove (set stopwords)
-;;                    (map str/lower-case
-;;                         (str/split
-;;                          (str/replace
-;;                           (str/join (vals (observations-by-report-id test-group)))
-;;                           #"\.|," "")
-;;                          #"\s+"))))))
-
-(comment
-  (number-of-residents-present (text/extract (second all-reports-pdfs)))
-  (what-residents-told-us (text/extract (first all-reports-pdfs)))
-  (reformat-frontm-id (get (parse-frontmatter (text/extract (last all-reports-pdfs))) "Centre ID:")))
