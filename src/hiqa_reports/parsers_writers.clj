@@ -4,7 +4,8 @@
    [clojure.java.io :as io]
    [clojure.string :as str]
    [pdfboxing.text :as text]
-   [tablecloth.api :as tc]))
+   [tablecloth.api :as tc]
+   [java-time.api :as jt]))
 
 ;; TODO Split file into processing/analysis
 
@@ -75,6 +76,23 @@
 (def quality-and-safety-nos (keys (:quality-and-safety hiqa-regulations)))
 
 ;; Parsing functions
+;;
+;; DATE
+
+(defn- DOI->dateobj
+  "In cases where there are two inspection days, chooses second one."
+  [date-of-inspection]
+  (when date-of-inspection
+    (let [dt-str
+          (if (re-find #"and|&" date-of-inspection)
+            (second (str/split date-of-inspection #"and "))
+            date-of-inspection)]
+      (when dt-str
+        (jt/local-date "ddMMMMyyyy" (str/replace dt-str #" " ""))))))
+
+
+
+
 
 (defn- reformat-frontm-id
   "Extract ID compatible with 'centre-id' from the longer IDs used in the reports"
@@ -87,22 +105,12 @@
 
 (defn- generate-report-id
   "Generate custom report id, based on center ID joined with date of report yyyyMMdd.
-  Date input is based on report frontmatter, example '01 January 1900'
-
-  In cases where two dates are listed (eg 08 and 09 of June), second date is used."
-
+  Date input is based on report frontmatter, example '01 January 1900'  "
+  
   [date centre-id]
   (when date
-    (let [d1 (if (re-find #"and" date)
-               (second (str/split date #"and "))
-               date)
-          d2 (.format (java.text.SimpleDateFormat. "yyyyMMdd")
-                      (.parse (java.text.SimpleDateFormat. "dd MMMM yyyy")
-                              d1))]
-      (str centre-id "-" d2))))
+    (str centre-id "-" (jt/format "yyyyMMdd" date))))
 
-(comment
-  (generate-report-id "01 December 2021" "7890"))
 
 (defn- parse-frontmatter [pdf-text]
   (let [page-1 (first (rest (str/split pdf-text #"Page")))
@@ -197,8 +205,8 @@
   (let [text              (text/extract pdf-file)
         frontmatter       (parse-frontmatter text)
         centre-id         (reformat-frontm-id (:centre-ID-OSV frontmatter))
-        report-id         (generate-report-id (:date-of-inspection frontmatter)
-                                              centre-id)
+        date              (DOI->dateobj (:date-of-inspection frontmatter))
+        report-id         (generate-report-id date centre-id)
         residents-present (number-of-residents-present text)
         compliance        (parse-compliance-table text)
         observations      (what-residents-told-us text)]
@@ -209,18 +217,16 @@
             :compliance-levels compliance
             :observations observations})))
 
-(defn- year-from-DOI [date-of-inspection]
-  (when date-of-inspection
-    (parse-long
-     (re-find #"\d{4}" date-of-inspection))))
+
+
 
 (defn- process-pdf-alt [pdf-file]
   (let [text              (text/extract pdf-file)
         frontmatter       (parse-frontmatter text)
         centre-id         (reformat-frontm-id (:centre-ID-OSV frontmatter))
-        report-id         (generate-report-id (:date-of-inspection frontmatter)
-                                              centre-id)
-        year              (year-from-DOI (:date-of-inspection frontmatter))
+        date              (DOI->dateobj (:date-of-inspection frontmatter))
+        report-id         (generate-report-id date centre-id)
+        year              (when date (jt/as date :year))
         residents-present (number-of-residents-present text)
         compliance        (parse-compliance-table-alt text)
         observations      (what-residents-told-us text)]
@@ -231,7 +237,9 @@
       :centre-id                   (parse-long centre-id)
       :number-of-residents-present residents-present
       :observations                observations
-      :year                        year})))
+      :year                        year
+      :date                        (when date (jt/format "YYYY-MM-dd" (jt/zoned-date-time date "UTC")))})))
+
 
 ;; File Outputs
 
@@ -254,8 +262,6 @@
       (tc/drop-missing "centre-id")
       (tc/write! full-csv-out)))
 
-
-
 (defn reg-map-cols
   "Returns function for use with Tablecloth, for summarising compliance levels."
   [type]
@@ -264,11 +270,9 @@
 
 ;; Datasets
 
-
 (def DS_pdf_info
   (-> (tc/dataset full-csv-out {:key-fn keyword})))
 
-(tc/column-names DS_pdf_info #":Regulation.*")
 
 (def DS_pdf_info_compliance
   (-> DS_pdf_info
@@ -297,7 +301,6 @@
                             (* 100 (float (/ com tot))))))))
 
 
-;; TODO Implement some of these when finalised
 (comment
 
   (time
@@ -306,6 +309,7 @@
    (process-pdfs-to-json! process-pdf-alt full-json-out))
   ;; "Elapsed time: 184113.473958 msecs"
   ;; Elapsed time: 181533.344375 msecs
+  ;; Elapsed time: 184602.791167 msecs
   ;; 3 mins
 
   (full-csv-write!))
