@@ -1,11 +1,8 @@
 (ns hiqa-reports.tables
   (:require
    [hiqa-reports.parsers-writers :as dat]
-   [cheshire.core :as json]
-   [clojure.java.io :as io]
    [clojure.set :as set]
    [clojure.string :as str]
-   [pdfboxing.text :as text]
    [tablecloth.api :as tc]))
 
 ;; Drafts for analysis
@@ -24,7 +21,8 @@
       (tc/group-by group)
       (tc/aggregate #(float
                       (/ (reduce + (% type))
-                         (count (% type)))))))
+                         (count (% type)))))
+      (tc/rename-columns {"summary" type})))
 
 (def non-compliance-by-provider
   (compliance-by-group
@@ -89,6 +87,44 @@
         (tc/reorder-columns [:area :regulation :compliant]))))
 
 
+(defn aggregate-judgements [ds]
+  (-> ds
+      (tc/select-columns #":Regulation.*")
+      (tc/aggregate-columns #(frequencies (remove nil? %)))
+      (tc/rows :as-maps)
+      first))
+
+(defn aggregate-compliance-levels [ds]
+  (let [ms (aggregate-judgements ds)]
+    (for [k     (keys ms)
+          :let  [n (name k)
+                 num (re-find #"\d+" n)]
+          :when num
+          :let  [num (parse-long num)
+                 judgement (re-find #"Compliant|Not compliant|Substantially compliant" n)
+                 area (if ((:capacity-and-capability dat/hiqa-regulations) num)
+                        :capacity-and-capability
+                        :quality-and-safety)
+                 full-name (str (first (str/split n #"-")) ": " ((area dat/hiqa-regulations) num))
+                 reg-name ((area dat/hiqa-regulations) num)]]
+      {:area      area
+       :number    num
+       :name      full-name
+       :reg-name  reg-name
+       :judgement judgement
+       :value     (k ms)})))
+
+(def DS_agg_compliance_per_reg
+  (-> (tc/dataset (aggregate-compliance-levels dat/DS_pdf_info))
+      (tc/pivot->wider :judgement :value)
+      (tc/rename-columns {"Compliant" :compliant
+                          "Substantially compliant" :substantiallycompliant
+                          "Not compliant" :notcompliant})))
+
+
+
+
+
 ;; Compliance grouping
 ;;
 (defn compliance-levels-by-frontmatter-area [entries frontmatter-area reg-no]
@@ -99,6 +135,7 @@
           {}
           entries))
 
+;; TODO Validate this...
 (defn make-regulation-table
   "Group is either :provider, :area or :id"
   [entries reg-no group]

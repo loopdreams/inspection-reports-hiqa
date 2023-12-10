@@ -44,6 +44,9 @@
         (let [data (str/join "\n" report-list)]
           (spit fname data))))))
 
+(comment
+  (print-reports-list-at-date report-list))
+  
 (defn- most-recent-reports-file []
   (->> (file-seq (io/file report-urls-list-dir))
        rest

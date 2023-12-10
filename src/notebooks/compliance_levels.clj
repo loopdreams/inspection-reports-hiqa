@@ -3,26 +3,32 @@
   (:require
    [hiqa-reports.parsers-writers :as dat]
    [hiqa-reports.tables :as tables]
+   [hiqa-reports.hiqa-register :refer [hiqa-reg-DB]]
    [nextjournal.clerk :as clerk]
-   [nextjournal.markdown :as md]
-   [tablecloth.api :as tc]))
+   [tablecloth.api :as tc]
+   [aerial.hanami.common :as hc]
+   [aerial.hanami.templates :as ht]
+   [java-time.api :as jt]))
 
+^{::clerk/visibility {:result :hide}}
+(swap! hc/_defaults assoc :BACKGROUND "white")
 
-;; # Aggregation of compliance levels for regulated residential centres for persons with disabilities
+;; # HIQA Inspection Reports: Compliance
 ;;
 ;; All raw data from [HIQA inspection reports](https://www.hiqa.ie/reports-and-publications/inspection-reports)
 ;;
 ;; [TODO Add link : Supplementary info on methodology around extraction](link).
 ;;
-;; ## Info about regulations
+;; ## HIQA Regulations
 ;;
 ;; The HIQA inspection reports provide 'judgements' on the compliance levels across the various regulations. Judgements are either:
 ;; - Compliant
 ;; - Substantially compliant
 ;; - Not compliant
 ;;
-;; ### Regulations
-;; #### Capacity and Capability
+;; The regulations headings are as follows:
+;;
+;; ### Capacity and Capability
 ;;  - Regulation 3  "Statement of purpose"
 ;;  - Regulation 4  "Written policies and procedures"
 ;;  - Regulation 14 "Person in charge"
@@ -38,7 +44,7 @@
 ;;  - Regulation 32 "Notifications of periods when person in charge is absent"
 ;;  - Regulation 33 "Notifications of procedures and arrangements for periods when person in charge is absent"
 ;;  - Regulation 34 "Complaints procedure"
-;; #### Quality and Safety
+;; ### Quality and Safety
 ;;  - Regulation 5 "Individualised assessment and personal plan"
 ;;  - Regulation 6 "Healthcare"
 ;;  - Regulation 7 "Positive behaviour support"
@@ -59,7 +65,7 @@
 ;;
 ;; [Additional info on regulations](https://www.hiqa.ie/sites/default/files/2018-02/Assessment-of-centres-DCD_Guidance.pdf)
 ;;
-;; ## General Info
+;; ## General Information from the Reports
 ;;
 
 (clerk/md
@@ -80,20 +86,62 @@
 
 ;; ### Inspections by Year
 
-(clerk/table
- (-> dat/DS_pdf_info
-     (tc/group-by :year)
-     (tc/process-group-data #(tc/row-count %))
-     (tc/as-regular-dataset)
-     (tc/drop-columns :group-id)
-     (tc/rename-columns {:name "Year"
-                         :data "Inspections"})
-     (tc/order-by "Year" [:desc])
-     (tc/rows :as-maps)))
+(clerk/vl
+ (hc/xform
+  ht/bar-chart
+  :DATA (-> dat/DS_pdf_info
+            (tc/group-by :year)
+            (tc/process-group-data #(tc/row-count %))
+            (tc/as-regular-dataset)
+            (tc/drop-columns :group-id)
+            (tc/rename-columns {:name "Year"
+                                :data "Inspections"})
+            (tc/order-by "Year" [:desc])
+            (tc/rows :as-maps))
+  :TITLE "Number of Inspections by Year"
+  :X "Year" :XTYPE :nominal
+  :Y "Inspections" :YTYPE :quantitative))
+
+;; ### Inspections by month
+
+{::clerk/visibility {:result :hide}}
+(def month-data
+  (reduce concat
+          (let [data (-> dat/DS_pdf_info
+                         (tc/select-columns [:year :date])
+                         (tc/drop-missing :date)
+                         (tc/rows :as-maps))
+                sorted-m
+                (reduce (fn [result {:keys [year date]}]
+                          (let [month (jt/as date :month-of-year)]
+                            (update-in result [year month] (fnil inc 0))))
+                        {}
+                        data)]
+            (for [year (keys sorted-m)]
+              (for [month (keys (sorted-m year))]
+                {:year year :month month :value ((sorted-m year) month)})))))
+
+{::clerk/visibility {:result :show}}
+(clerk/vl
+ {:$schema "https://vega.github.io/schema/vega-lite/v5.json"
+  :data {:values month-data}
+  :mark {:type :bar :tooltip true}
+  :width 600
+  :height 400
+  :encoding
+  {:x {:field :month
+       :type "ordinal"}
+   :y {:field :value
+       :type "quantitative"
+       :title "Number of Inspections"}
+   :color {:field :year
+           :type "nominal"}}})
+
+
 
 ;; ### Inspections per Region
 
-^{::clerk/visibility {:result :hide}}
+{::clerk/visibility {:result :hide}}
 (def DS_dublin_grouped
   (-> dat/DS_pdf_info
       (tc/map-columns :area [:address-of-centre]
@@ -103,9 +151,7 @@
                             "Dublin"
                             v))))))
 
-;; ### Regional Info
 
-{::clerk/visibility {:result :hide}}
 (defn regional-tbl [k name]
   (-> DS_dublin_grouped
      (tc/group-by :area)
@@ -121,25 +167,53 @@
 (def region-providers
   (regional-tbl :name-of-provider "Number of Providers"))
 
-
-{::clerk/visibility {:result :show}}
-(clerk/table
- (-> region-inspections
+(def regional-joined
+  (-> region-inspections
      (tc/full-join region-centres "Region")
      (tc/full-join region-providers "Region")
      (tc/order-by ["Number of Inspections"] [:desc])
      (tc/rows :as-maps)))
 
+{::clerk/visibility {:result :show}}
+(clerk/table
+ regional-joined)
+
+(clerk/row
+ (clerk/vl
+  (hc/xform
+   ht/bar-chart
+   :DATA regional-joined
+   :X "Region" :XTYPE :nominal :XSORT "-y"
+   :Y "Number of Inspections" :TYPE :quantitative))
+ (clerk/vl
+  (hc/xform
+   ht/bar-chart
+   :DATA regional-joined
+   :X "Region" :XTYPE :nominal :XSORT "-y"
+   :Y "Number of Centres" :TYPE :quantitative))
+ (clerk/vl
+  (hc/xform
+   ht/bar-chart
+   :DATA regional-joined
+   :X "Region" :XTYPE :nominal :XSORT "-y"
+   :Y "Number of Providers" :TYPE :quantitative)))
+ 
+
 ;; ### Inspection Types
 
-(clerk/table
- (-> dat/DS_pdf_info
-     (tc/group-by :type-of-inspection)
-     (tc/aggregate-columns [:report-id]
-                           #(count %))
-     (tc/rename-columns {:$group-name "Type of Inspection"
-                         :report-id "Number of Inspections"})
-     (tc/rows :as-maps)))
+(clerk/vl
+ (hc/xform
+  ht/bar-chart
+  :DATA (-> dat/DS_pdf_info
+            (tc/group-by :type-of-inspection)
+            (tc/aggregate-columns [:report-id]
+                                  #(count %))
+            (tc/rename-columns {:$group-name "Type of Inspection"
+                                :report-id "Number of Inspections"})
+            (tc/rows :as-maps))
+  :TITLE "Number of Inspections by Type of Inspection"
+  :X "Type of Inspection" :XTYPE :nominal :XSORT "-y"
+  :Y "Number of Inspections" :YTYPE :quantitative))
 
 
 ;;
@@ -157,8 +231,119 @@
            (-> (tc/dataset "outputs/pdf_info_alt.csv")
                (tc/group-by "centre-id" {:result-type :as-indexes}))))))})
 
-;; ## Overall Levels per Regulation
+;; ### Residents Present at time of inspection
+;;
+;; As there can be multiple inspections per centre, this takes only the number of residents
+;; present at the time of the  **most recent** inspection
 
+{::clerk/visibility {:result :hide}}
+(defn most-recent-resident-no [dates resnum]
+  (->> resnum
+       (interleave dates)
+       (partition 2)
+       (sort-by first)
+       reverse
+       first
+       second))
+
+{::clerk/visibility {:result :show}}
+(clerk/vl
+ (hc/xform
+  ht/bar-chart
+  :DATA
+  (-> dat/DS_pdf_info
+      (tc/drop-missing :number-of-residents-present)
+      (tc/group-by :centre-id)
+      (tc/aggregate {:no-residents-most-recent
+                     #(most-recent-resident-no
+                       (% :date)
+                       (% :number-of-residents-present))})
+      (tc/group-by :no-residents-most-recent)
+      (tc/aggregate {:centres #(count (% :$group-name))})
+      (tc/rename-columns {:$group-name :number-of-residents-present})
+      (tc/rows :as-maps))
+  :X :number-of-residents-present :XTYPE :nominal
+  :Y :centres :YTPE :quantitative))
+
+;; #### Comparisons with the HIQA Register
+
+(clerk/vl
+ (hc/xform
+  ht/bar-chart
+  :DATA
+  (-> hiqa-reg-DB
+      (tc/group-by :Maximum_Occupancy)
+      (tc/aggregate {:number-of-centres #(count (% :Centre_ID))})
+      (tc/rename-columns {:$group-name :maximum-occupancy})
+      (tc/rows :as-maps))
+  :X :maximum-occupancy :XTYPE :nominal
+  :Y :number-of-centres))
+
+;; Below is a table comparing the maximum occupancy for a centre as recorded in the HIQA register vs.
+;; the number of residents present at the date of the last inspection. There are obviously a lot of
+;; caveats around this kind of comparison, since the 'number of residents' present at the precise time
+;; of the inspection is highly dependant on a lot of other factors not captured here.
+;;
+(def joined-occupancy
+  (-> dat/DS_pdf_info
+        (tc/drop-missing :number-of-residents-present)
+        (tc/group-by :centre-id)
+        (tc/aggregate {:no-residents-most-recent
+                        #(most-recent-resident-no
+                          (% :date)
+                          (% :number-of-residents-present))})
+        (tc/rename-columns {:$group-name :Centre_ID})
+        (tc/full-join hiqa-reg-DB :Centre_ID)
+        (tc/select-columns [:Centre_ID :Maximum_Occupancy :no-residents-most-recent])
+        (tc/drop-missing :no-residents-most-recent)
+        (tc/order-by :Centre_ID)
+        (tc/map-columns :difference
+                         [:Maximum_Occupancy :no-residents-most-recent]
+                         #(- %1 %2))))
+
+(clerk/table joined-occupancy)
+
+(clerk/md
+ (str
+  "- The **total** maximum occupancy across all centres on the HIQA register is: **"
+  (->> (:Maximum_Occupancy hiqa-reg-DB)
+       (reduce +))
+  "**"
+  "\n"
+  "- The total maximum occupancy across centres where inspections also occured is: **"
+  (->> (:Maximum_Occupancy joined-occupancy)
+       (reduce +))
+  "**"
+  "\n"
+  "- The total 'residents present' at time of inspection is: **"
+  (->> (:no-residents-most-recent joined-occupancy)
+       (reduce +))
+  "**"
+  "\n"
+  "- The difference between 'max' occupancy of centres inspected and 'residents present' is: **"
+  (->> (:difference joined-occupancy)
+       (reduce +))
+  "**"
+  "\n"
+  "- The difference between 'max occupancy' and 'residents present' for **congregated settings** is: **"
+  (->> (:difference
+        (-> joined-occupancy
+            (tc/select-rows #(< 9 (% :Maximum_Occupancy)))))
+       (reduce +))
+  "**"))
+
+;; Surpisingly, there were also a number of centres with 'more' residents present than was listed as 'maximum occupancy'.
+;;
+(clerk/table
+ (-> joined-occupancy
+     (tc/select-rows #(> 0 (% :difference)))
+     (tc/order-by :difference)))
+
+;; After looking up the reports for the first few entries here, it seems that the HIQA register might be out of date.
+
+;; ## Overall Compliance Levels per Regulation
+
+{::clerk/visibility {:result :hide}}
 (defn add-percent-noncompliant [table]
   (-> table
       
@@ -180,18 +365,9 @@
 ;;
 ;;
 
-
-(def cap-and-cap-data
-  (->
-   (tables/make-compliance-tc-table dat/pdf-info-DB tables/compliance-levels-table-capacity)
-   (tc/drop-columns [:area :unchecked])
-   (add-percent-noncompliant)))
-
-(clerk/table cap-and-cap-data)
-
-(def cap-and-cap-data-v2
+(defn regulations-graph [data]
   (reduce (fn [result entry]
-            (let [reg (:regulation entry)
+            (let [reg (:reg-name entry)
                   com (:compliant entry)
                   noncom (:notcompliant entry)
                   subcom (:substantiallycompliant entry)]
@@ -206,33 +382,93 @@
                      :type "substantially"
                      :value subcom})))
           []
-          (-> cap-and-cap-data (tc/rows :as-maps))))
+          (-> data (tc/rows :as-maps))))
 
+
+(def cap-and-cap-data
+  (-> tables/DS_agg_compliance_per_reg
+      (tc/select-rows #(= :capacity-and-capability (% :area)))
+      (add-percent-noncompliant)
+      (tc/drop-columns [:area :number :name])))
+
+(defn reg-heatmap-char [data title]
+  {:$schema "https://vega.github.io/schema/vega-lite/v5.json"
+   :data {:values (regulations-graph data)}
+   :mark {:type "rect" :tooltip true}
+   :title title
+   :encoding {:y {:field "regulation" :type "nominal" :axis { :labelLimit 0 :labelFontSize 12} :title false}
+              :x {:field "type" :type "nominal" :axis {:title "Judgement" :labelFontSize 12}}
+              :color {:field "value" :type "quantitative" :scale {:scheme "bluegreen"}}
+              :config {:axis {:grid true :tickBand "extent"}}}
+   :width 200
+   :height 600})
+
+{::clerk/visibility {:result :show}}
 (clerk/vl
- {:$schema "https://vega.github.io/schema/vega-lite/v5.json"
-  :data {:values cap-and-cap-data-v2}
-  :mark "rect"
-  :encoding {:x {:field "regulation" :type "nominal" :axis {:labelAngle -45}}
-             :y {:field "type" :type "nominal" :axis {:title "Judgement"}}
-             :color {:field "value" :type "quantitative"}}
+ (reg-heatmap-char cap-and-cap-data "Capacity and Capability"))
 
-  :config {:axis {:grid true :tickBand "extent"}}
-  :width 400
-  :height 100})
-
- 
+(clerk/table cap-and-cap-data)
 
 ;; ### Quality and Safety
 
+{::clerk/visibility {:result :hide}}
+(def qual-and-saf-data
+  (-> tables/DS_agg_compliance_per_reg
+      (tc/select-rows #(= :quality-and-safety (% :area)))
+      (add-percent-noncompliant)
+      (tc/drop-columns [:area :number :name])))
+
+
+{::clerk/visibility {:result :show}}
+(clerk/vl
+ (reg-heatmap-char qual-and-saf-data "Quality and Safety"))
+
+(clerk/table qual-and-saf-data)
+
+
+(def ireland-map (slurp "resources/irish-counties-segmentized.topojson"))
+;; ### Aggregate Compliance Levels by Area and Provider
+;;
+;; Figures are average, and for indicative purposes only. They do not caputre the types of compliance and the nuances around the difference regulations.
+
 (clerk/table
- (->
-  (tables/make-compliance-tc-table dat/pdf-info-DB tables/compliance-levels-table-quality)
-  (tc/drop-columns [:area :unchecked])
-  (add-percent-noncompliant)))
+ (-> tables/full-compliance-by-provider
+     (tc/full-join tables/non-compliance-by-provider :$group-name)
+     (tc/rename-columns {:$group-name :provider})
+     (tc/order-by :percent-fully-compliant :desc)))
+
+(clerk/table
+ (-> tables/full-compliance-by-area
+     (tc/full-join tables/non-compliance-by-area :$group-name)
+     (tc/rename-columns {:$group-name :area})
+     (tc/order-by :percent-fully-compliant :desc)))
+
+
+;; ### Congregated Settings
+;;
+;; Congregated settings are where there are 10 or more people living in a centre.
+
+
+#_(def congregated_DS_cap
+    (-> cap-and-cap-data
+        (tc/drop-missing :number-of-residents-present)
+        (tc/select-rows #(< 9 (% :number-of-residents-present)))))
+
+#_(tables/make-compliance-tc-table
+   (-> dat/DS_pdf_info
+       (tc/drop-missing :number-of-residents-present)
+       (tc/select-rows #(< 9 (% :number-of-residents-present)))
+       (tc/rows :as-maps))
+   tables/compliance-levels-table-quality)
+
+
+    
 
 ;; ## Regulations by Provider and Area
 ;;
-(def ireland-map (slurp "resources/irish-counties-segmentized.topojson"))
+;; I will look more closely below at two of the areas with a higher proportion of "Not compliant"
+;; judgements, **Governance and Mannagement** and **Fire Precautions**.
+;;
 
 ;; ### Regulation 23: Governance and Management
 ;;

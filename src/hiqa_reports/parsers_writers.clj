@@ -7,8 +7,6 @@
    [tablecloth.api :as tc]
    [java-time.api :as jt]))
 
-;; TODO Split file into processing/analysis
-
 (def reports-directory (io/file "inspection_reports/"))
 
 (def all-reports-pdfs (rest (file-seq reports-directory)))
@@ -90,10 +88,6 @@
       (when dt-str
         (jt/local-date "ddMMMMyyyy" (str/replace dt-str #" " ""))))))
 
-
-
-
-
 (defn- reformat-frontm-id
   "Extract ID compatible with 'centre-id' from the longer IDs used in the reports"
   [osvID]
@@ -110,7 +104,6 @@
   [date centre-id]
   (when date
     (str centre-id "-" (jt/format "yyyyMMdd" date))))
-
 
 (defn- parse-frontmatter [pdf-text]
   (let [page-1 (first (rest (str/split pdf-text #"Page")))
@@ -198,7 +191,6 @@
 (comment
   (map (comp parse-compliance-table-alt text/extract) (take 5 all-reports-pdfs)))
 
-
 (defn- process-pdf
   "Heirarchical version of output. For 'flat' version see 'process-pdf-alt'"
   [pdf-file]
@@ -216,9 +208,6 @@
             :number-of-residents-present residents-present
             :compliance-levels compliance
             :observations observations})))
-
-
-
 
 (defn- process-pdf-alt [pdf-file]
   (let [text              (text/extract pdf-file)
@@ -273,6 +262,7 @@
 (def DS_pdf_info
   (-> (tc/dataset full-csv-out {:key-fn keyword})))
 
+(def pdf-info-DB (json/parse-string (slurp "outputs/pdf_info.json") true))
 
 (def DS_pdf_info_compliance
   (-> DS_pdf_info
@@ -300,9 +290,8 @@
                         (if (zero? com) 0
                             (* 100 (float (/ com tot))))))))
 
-
+;; OUTPUTS
 (comment
-
   (time
    (process-pdfs-to-json! process-pdf "outputs/pdf_info.json"))
   (time
@@ -346,18 +335,3 @@
 
 
 ;;; *** End of parsing/generation functions
-
-;; Number of inspections per centre:
-(comment
-  (->>
-   (-> (tc/dataset "outputs/pdf_info_alt.csv")
-       (tc/group-by "centre-id" {:result-type :as-indexes}))
-   (map (comp count second))
-   frequencies))
-
-
-;; Elapsed time: 191234.397125 msecs
-;; Elapsed time: 190448.940459 msecs
-
-(def pdf-info-DB (json/parse-string (slurp "outputs/pdf_info.json") true))
-
