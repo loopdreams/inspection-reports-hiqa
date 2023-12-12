@@ -202,19 +202,20 @@
 ;; ### Inspection Types
 
 (clerk/vl
- (hc/xform
-  ht/bar-chart
-  :DATA (-> dat/DS_pdf_info
-            (tc/group-by :type-of-inspection)
-            (tc/aggregate-columns [:report-id]
-                                  #(count %))
-            (tc/rename-columns {:$group-name "Type of Inspection"
-                                :report-id "Number of Inspections"})
-            (tc/rows :as-maps))
-  :TITLE "Number of Inspections by Type of Inspection"
-  :X "Type of Inspection" :XTYPE :nominal :XSORT "-y"
-  :Y "Number of Inspections" :YTYPE :quantitative))
-
+ {:$schema "https://vega.github.io/schema/vega-lite/v5.json"
+  :description "A simple donut chart with embedded data."
+  :data {:values (-> dat/DS_pdf_info
+                     (tc/group-by :type-of-inspection)
+                     (tc/aggregate-columns [:report-id]
+                                           #(count %))
+                     (tc/rename-columns {:$group-name "Type of Inspection"
+                                         :report-id "Number of Inspections"})
+                     (tc/rows :as-maps))}
+  
+  :mark {:type "arc" :innerRadius 50 :tooltip true}
+  :encoding {:theta {:field "Number of Inspections" :type "quantitative"}
+             :color {:field "Type of Inspection" :type "nominal"}}})
+               
 
 ;;
 ;; ### Number of Inspections Per Centre
