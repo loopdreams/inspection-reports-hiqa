@@ -123,14 +123,39 @@
     (when no-of-residents
       (parse-long (re-find #"\d+" no-of-residents)))))
 
-(defn- what-residents-told-us [pdf-text]
-  (str/replace
-   (str/trim
+#_(defn- what-residents-told-us [pdf-text]
     (str/replace
-     (second
-      (str/split pdf-text
-                 #"What residents told us and what inspectors observed \n|Capacity and capability \n")) #"\n" ""))
-   #"  Page \d+ of \d+  " ""))
+     (str/trim
+      (str/replace
+       (second
+        (str/split pdf-text
+                   #"What residents told us and what inspectors observed \n|Capacity and capability \n")) #"\n" ""))
+     #"  Page \d+ of \d+  " ""))
+
+(defn- what-residents-told-us
+  "Updated this function because two reports (e.g., 5686/2021) contained an alternative
+  title for the observations section 'Views of the people who use the service'."
+  [pdf-text]
+  (-> pdf-text
+      (str/split #"What residents told us and what inspectors observed \n|Views of people who use the service|Capacity and capability \n")
+      second
+      (str/replace #"\n" "")
+      str/trim
+      (str/replace #"  Page \d+ of \d+  " "")))
+
+
+(defn test-for-alt-observation-text [pdf-file]
+  (let [text (text/extract pdf-file)]
+    (when (re-find #"Views of people who use the service" text)
+      pdf-file)))
+
+(comment
+  (remove nil? (map test-for-alt-observation-text all-reports-pdfs)))
+
+;; 
+  ;; 0. inspection_reports/5686-brookfield-17-february-2021.pdf
+  ;; 1. inspection_reports/5785-liffey-3-11-march-2021.pdf
+  
 
 (defn- lookup-reg
   "Capturing the area too (capacity or quality)"
@@ -190,6 +215,7 @@
 
 (comment
   (map (comp parse-compliance-table-alt text/extract) (take 5 all-reports-pdfs)))
+
 
 (defn- process-pdf
   "Heirarchical version of output. For 'flat' version see 'process-pdf-alt'"
