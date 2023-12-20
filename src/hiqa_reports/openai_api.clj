@@ -43,11 +43,6 @@
            input-entries)
    (clojure.java.io/writer output-f)))
 
-(comment
-  (fetch-and-log-response! (take 3 (-> DS_pdf_info
-                                       (tc/select-columns [:centre-id :report-id :observations])
-                                       (tc/rows :as-maps)))
-                           "test2.json"))
 
 (defn make-DB-backup []
   (when (.exists (io/file processed-reports-DB-f))
@@ -85,31 +80,39 @@
       (-> (tc/dataset new-DB)
           (tc/write! processed-reports-DB-f)))))
 
+(defn build-responses-db! [json-f]
+  (let [DB    (if (.exists (io/file processed-reports-DB-f))
+                (-> (tc/dataset processed-reports-DB-f {:key-fn keyword})
+                    (tc/rows :as-maps))
+                [])
+        input (json/parse-stream (io/reader json-f) true)
+        new-DB (into DB
+                     (for [entry input
+                           :let [{:keys [rating keywords phrases summary] :as response}
+                                 (extract-response entry)]]
+                       (-> entry
+                           (dissoc :response)
+                           (assoc :rating rating)
+                           (assoc :keywords keywords)
+                           (assoc :phrases phrases)
+                           (assoc :summary summary))))]
+    (-> (tc/dataset new-DB)
+        (tc/write! processed-reports-DB-f))))
+
+;; Build db from responses json files (generated below)
+(comment
+  (add-responses-to-db! (str responses-dir "batch_11.json")))
+
+(comment
+  (map build-responses-db! (sort (rest (file-seq (io/file responses-dir))))))
+
 (def batches
   (partition-all 100
                  (-> DS_pdf_info
                      (tc/select-columns [:centre-id :report-id :observations])
                      (tc/rows :as-maps))))
 
-
-(comment
-  (reverse
-   (sort-by val
-            (frequencies
-             (flatten
-              (map edn/read-string
-                   (-> (tc/dataset processed-reports-DB-f {:key-fn keyword})
-                       (tc/select-rows #(= "negative" (% :rating)))
-                       :phrases)))))))
-
-(comment
-  (-> (tc/dataset processed-reports-DB-f {:key-fn keyword})
-      (tc/group-by :rating)))
-
-
-(comment
-  (add-responses-to-db! (str responses-dir "batch_04.json")))
-
+;; Fetching responses in batches
 (comment
   ;; (fetch-and-log-response! (nth batches 1) (str responses-dir  "batch_01.json"))
   ;; (fetch-and-log-response! (nth batches 0) (str responses-dir  "batch_00.json"))
@@ -120,19 +123,38 @@
   ;;         (nth batches 4)]
   ;;        [(str responses-dir  "batch_03.json")
   ;;         (str responses-dir  "batch_04.json")]))
-  (fetch-and-log-response! (nth batches 5) (str responses-dir  "batch_05.json"))
-  (fetch-and-log-response! (nth batches 6) (str responses-dir  "batch_06.json"))
-  (fetch-and-log-response! (nth batches 7) (str responses-dir  "batch_07.json"))
-  (fetch-and-log-response! (nth batches 8) (str responses-dir  "batch_08.json"))
-  (fetch-and-log-response! (nth batches 9) (str responses-dir  "batch_09.json"))
-  (fetch-and-log-response! (nth batches 10) (str responses-dir "batch_10.json"))
-  (fetch-and-log-response! (nth batches 11) (str responses-dir "batch_11.json"))
-  (fetch-and-log-response! (nth batches 12) (str responses-dir "batch_12.json"))
-  (fetch-and-log-response! (nth batches 13) (str responses-dir "batch_13.json"))
-  (fetch-and-log-response! (nth batches 14) (str responses-dir "batch_14.json"))
-  (fetch-and-log-response! (nth batches 15) (str responses-dir "batch_15.json"))
-  (fetch-and-log-response! (nth batches 16) (str responses-dir "batch_16.json"))
-  (fetch-and-log-response! (nth batches 17) (str responses-dir "batch_17.json"))
+  ;;
+  ;; (pmap #(fetch-and-log-response! %1 %2)
+  ;;       [(nth batches 5)
+  ;;        (nth batches 6)
+  ;;        (nth batches 7)
+  ;;        (nth batches 8)]
+  ;;       [(str responses-dir  "batch_05.json")
+  ;;        (str responses-dir  "batch_06.json")
+  ;;        (str responses-dir  "batch_07.json")
+  ;;        (str responses-dir  "batch_08.json")])
+  ;;
+  ;; (pmap #(fetch-and-log-response! %1 %2)
+  ;;       [(nth batches 9)
+  ;;        (nth batches 10)
+  ;;        (nth batches 11)
+  ;;        (nth batches 12)]
+  ;;       [(str responses-dir  "batch_09.json")
+  ;;        (str responses-dir  "batch_10.json")
+  ;;        (str responses-dir  "batch_11.json")
+  ;;        (str responses-dir  "batch_12.json")])
+
+
+  ;; (fetch-and-log-response! (nth batches 11) (str responses-dir "batch_11.json"))
+  (pmap #(fetch-and-log-response! %1 %2)
+        [(nth batches 13)
+         (nth batches 14)
+         (nth batches 15)
+         (nth batches 17)]
+        [(str responses-dir "batch_13.json")
+         (str responses-dir "batch_14.json")
+         (str responses-dir "batch_15.json")
+         (str responses-dir "batch_17.json")])
   (fetch-and-log-response! (nth batches 18) (str responses-dir "batch_18.json"))
   (fetch-and-log-response! (nth batches 19) (str responses-dir "batch_19.json"))
   (fetch-and-log-response! (nth batches 20) (str responses-dir "batch_20.json"))
@@ -147,12 +169,60 @@
   (fetch-and-log-response! (nth batches 29) (str responses-dir "batch_29.json"))
   (fetch-and-log-response! (nth batches 30) (str responses-dir "batch_30.json")))
 
-
 ;;Batch1: "Elapsed time: 384379.147459 msecs" 6+ minutes
 ;;Cost 18c
 ;; Estimated total $5.58
 
-;; Checking errors in GPT response
+
+
+;; Validation/cleaning
+
+(defn word-count [str]
+  (count (str/split str #"\w+")))
+
+(comment
+  (word-count prompt)
+  (map #(word-count (str (:observations %))) (nth batches 11))
+  (nth (nth batches 11) 91))
+
+;; The issue with the above entry seems to be an alternative heading for the 'observations'
+;; section - "Views of people who use the service"
+;; https://www.hiqa.ie/system/files?file=inspectionreports/5686-brookfield-17-february-2021.pdf
+;; DONE Test whether this heading is used in other reports too...
+
+
+
+;; TODO Delete later/move to analysis
+(comment
+  (reverse
+   (sort-by val
+            (frequencies
+             (flatten
+              (map edn/read-string
+                   (-> (tc/dataset processed-reports-DB-f {:key-fn keyword})
+                       (tc/select-rows #(= "positive" (% :rating)))
+                       :phrases)))))))
+
+;; TODO Delete later/move to analysis
+(comment
+  (reverse
+   (sort-by val
+            (frequencies
+             (flatten
+              (map edn/read-string
+                   (-> (tc/dataset processed-reports-DB-f {:key-fn keyword})
+                       (tc/select-rows #(= "neutral" (% :rating)))
+                       :keywords)))))))
+
+
+;; Validation - entry IDs empty ratings
+(comment
+  (-> (tc/dataset processed-reports-DB-f {:key-fn keyword})
+      (tc/select-rows #(= (% :rating) nil))
+      :report-id))
+
+
+;; Fixing a common error pattern
 (defn fix-malformed-string [s]
   (let [[_ kws phrs rate summ] (str/split
                                 (str/replace s #"\n" " ")
@@ -173,9 +243,10 @@
            ":summary " summ
            "}")))
 
+;; loop through entries and check which fail to render as edn
 (comment
-  (loop [[x & xs] (drop 0 (json/parse-stream (io/reader (str responses-dir "batch_03.json")) true))
-         c 0]
+  (loop [[x & xs] (drop 72 (json/parse-stream (io/reader (str responses-dir "batch_16.json")) true))
+         c 72]
     (println c)
     (when x
       (extract-response x)
@@ -183,9 +254,10 @@
        xs
        (inc c)))))
 
+;; entry ids of failed indexes
 (comment
   (let [e
-        (nth (json/parse-stream (io/reader (str responses-dir "batch_04.json")) true) 31)]
+        (nth (json/parse-stream (io/reader (str responses-dir "batch_16.json")) true) 71)]
     (-> e
         :response
         :choices
@@ -193,15 +265,33 @@
         :message
         :content
         edn/read-string))
-  (let [e (nth (json/parse-stream (io/reader (str responses-dir "batch_04.json")) true) 31)]
+  (let [e (nth (json/parse-stream (io/reader (str responses-dir "batch_16.json")) true) 71)]
     (:report-id e)))
 
-
 (comment
-  (fix-malformed-string "Keywords: residents, centre, management, governance, safeguarding.\nPhrases: good quality service, residents' choices respected, friendly and caring staff.\nRating: Positive\nSummary: The residents of the centre in Co. Donegal are generally happy and satisfied with the service. The staff is friendly and caring, and the management is effective in ensuring the quality and safety of the service provided to the residents."))
+  (fix-malformed-string "Keywords: improvements, compliance, amenities, vehicles, renovations\nPhrases: significant improvements, high level of compliance, clean and homely, adequate fire safety systems, positive feedback\nOverall rating: positive\nSummary: The text describes a positive inspection of a residential center, highlighting significant improvements, high compliance, and positive feedback from residents. The center has amenities and vehicles to support residents, and the premises are clean and homely. The overall sentiment of the residents is positive, indicating a good quality and safe service."))
 
 
+;; batch 16
+;; 4 71
+;; batch 11 - ok
+;; batch 12 - ok
 ;;
+;; batch 10 - done
+;; 25 51 62
+;;
+;; batch 09 - ok
+;;
+;; batch 08 - done
+;; 1 81
+;;
+;; batch 07 - none
+;;
+;; batch 06 - done
+;; 4 87
+;;
+;; batch 05 - done
+;; 31
 ;;
 ;; batch 04 - done
 ;; 31
