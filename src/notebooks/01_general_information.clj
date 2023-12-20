@@ -1,19 +1,16 @@
 (ns notebooks.01-general-information
   #:nextjournal.clerk{:visibility {:code :fold}, :toc :collapsed}
   (:require
-   [clojure.string :as str]
    [hiqa-reports.hiqa-register :refer [hiqa-reg-DB]]
-   [hiqa-reports.pdf-get :refer [report-list-by-year]]
    [nextjournal.clerk :as clerk]
    [tablecloth.api :as tc]
    [hiqa-reports.parsers-writers :as dat]
-   [hiqa-reports.tables :as tables]
-   [hiqa-reports.hiqa-register :refer [hiqa-reg-DB]]
-   [nextjournal.clerk :as clerk]
-   [tablecloth.api :as tc]
    [aerial.hanami.common :as hc]
    [aerial.hanami.templates :as ht]
-   [java-time.api :as jt]))
+   [java-time.api :as jt]
+   [scicloj.noj.v1.vis.hanami.templates :as vht]
+   [scicloj.noj.v1.vis.hanami :as hanami]
+   [scicloj.noj.v1.stats :as stats]))
 
 (comment
   (clerk/serve! {:browse? true :watch-paths ["src/notebooks"]}))
@@ -297,11 +294,211 @@
      (tc/select-rows (range 10))))
 
 
+
+;; TODO Failure here probably due to dependency conflict
+(comment
+  (hanami/linear-regression-plot inspections-and-centres-provider :centres :inspections {})
+
+  (-> inspections-and-centres-provider
+      (stats/add-predictions :centres [:inspections]
+                             {:model-type :smile.regression/ordinary-least-square})))
+
+;; ### Inspection Types
+
+(clerk/vl
+ {:$schema "https://vega.github.io/schema/vega-lite/v5.json"
+  :description "A simple donut chart with embedded data."
+  :data {:values (-> dat/DS_pdf_info
+                     (tc/group-by :type-of-inspection)
+                     (tc/aggregate-columns [:report-id]
+                                           #(count %))
+                     (tc/rename-columns {:$group-name "Type of Inspection"
+                                         :report-id "Number of Inspections"})
+                     (tc/rows :as-maps))}
+
+  :mark {:type "arc" :innerRadius 50 :tooltip true}
+  :encoding {:theta {:field "Number of Inspections" :type "quantitative"}
+             :color {:field "Type of Inspection" :type "nominal"}}})
+
 ;; ## Number of Residents Present
 ;;
-;; ### Average numbers of residents present
+;; As there can be multiple inspections per centre, this takes only the number of residents
+;; present at the time of the  **most recent** inspection
+
+{::clerk/visibility {:result :hide}}
+(defn most-recent-resident-no [dates resnum]
+  (->> resnum
+       (interleave dates)
+       (partition 2)
+       (sort-by first)
+       reverse
+       first
+       second))
+
+{::clerk/visibility {:result :show}}
+(clerk/vl
+ (hc/xform
+  ht/bar-chart
+  :DATA
+  (-> dat/DS_pdf_info
+      (tc/drop-missing :number-of-residents-present)
+      (tc/group-by :centre-id)
+      (tc/aggregate {:no-residents-most-recent
+                     #(most-recent-resident-no
+                       (% :date)
+                       (% :number-of-residents-present))})
+      (tc/group-by :no-residents-most-recent)
+      (tc/aggregate {:centres #(count (% :$group-name))})
+      (tc/rename-columns {:$group-name :number-of-residents-present})
+      (tc/rows :as-maps))
+  :TITLE "Number of Residents Present at Time of Inspection"
+  :X :number-of-residents-present :XTYPE :nominal
+  :Y :centres :YTPE :quantitative))
+
+
+(clerk/vl
+ (hc/xform
+  ht/bar-chart
+  :DATA
+  (-> hiqa-reg-DB
+      (tc/group-by :Maximum_Occupancy)
+      (tc/aggregate {:number-of-centres #(count (% :Centre_ID))})
+      (tc/rename-columns {:$group-name :maximum-occupancy})
+      (tc/rows :as-maps))
+  :TITLE "Maximum Occupancy - HIQA Register"
+  :X :maximum-occupancy :XTYPE :nominal
+  :Y :number-of-centres))
+
+;; Below is a table comparing the maximum occupancy for a centre as recorded in the HIQA register vs.
+;; the number of residents present at the date of the last inspection. There are obviously a lot of
+;; caveats around this kind of comparison, since the 'number of residents' present at the precise time
+;; of the inspection is highly dependant on a lot of other factors not captured here.
 ;;
-;; - frequencies/average
-;; - vs. HIQA register capacity
+(def joined-occupancy
+  (-> dat/DS_pdf_info
+        (tc/drop-missing :number-of-residents-present)
+        (tc/group-by :centre-id)
+        (tc/aggregate {:no-residents-most-recent
+                        #(most-recent-resident-no
+                          (% :date)
+                          (% :number-of-residents-present))})
+        (tc/rename-columns {:$group-name :Centre_ID})
+        (tc/full-join hiqa-reg-DB :Centre_ID)
+        (tc/select-columns [:Centre_ID :Maximum_Occupancy :no-residents-most-recent])
+        (tc/drop-missing :no-residents-most-recent)
+        (tc/order-by :Centre_ID)
+        (tc/map-columns :difference
+                         [:Maximum_Occupancy :no-residents-most-recent]
+                         #(- %1 %2))))
+
+(clerk/table joined-occupancy)
+
+(clerk/md
+ (str
+  "- The **total** maximum occupancy across all centres on the HIQA register is: **"
+  (->> (:Maximum_Occupancy hiqa-reg-DB)
+       (reduce +))
+  "**"
+  "\n"
+  "- The total maximum occupancy across centres where inspections also occured is: **"
+  (->> (:Maximum_Occupancy joined-occupancy)
+       (reduce +))
+  "**"
+  "\n"
+  "- The total 'residents present' at time of inspection is: **"
+  (->> (:no-residents-most-recent joined-occupancy)
+       (reduce +))
+  "**"
+  "\n"
+  "- The difference between 'max' occupancy of centres inspected and 'residents present' is: **"
+  (->> (:difference joined-occupancy)
+       (reduce +))
+  "**"
+  "\n"
+  "- The difference between 'max occupancy' and 'residents present' for **congregated settings** is: **"
+  (->> (:difference
+        (-> joined-occupancy
+            (tc/select-rows #(< 9 (% :Maximum_Occupancy)))))
+       (reduce +))
+  "**"))
+
+;; Surpisingly, there were also a number of centres with 'more' residents present than was listed as 'maximum occupancy'.
 ;;
-;; ### Congregated Settings
+(clerk/table
+ (-> joined-occupancy
+     (tc/select-rows #(> 0 (% :difference)))
+     (tc/order-by :difference)))
+
+;; After looking up the reports for the first few entries here, it seems that the HIQA register might be out of date.
+
+;; ### 'Congregated Settings' Based on Number of Residents present at time of inspection
+
+{::clerk/visibility {:result :hide}}
+(defn totals-present [fn no]
+  (reduce +
+          (-> dat/DS_pdf_info
+              (tc/drop-missing :number-of-residents-present)
+              (tc/select-rows #(fn no (% :number-of-residents-present)))
+              (tc/group-by :centre-id)
+              (tc/aggregate {:no-residents-most-recent
+                             #(most-recent-resident-no
+                               (% :date)
+                               (% :number-of-residents-present))})
+              :no-residents-most-recent)))
+
+(defn max-occupancy-totals [fn no]
+  (reduce +
+          (-> hiqa-reg-DB
+              (tc/select-rows #(fn no (% :Maximum_Occupancy)))
+              :Maximum_Occupancy)))
+
+(def congregated-total-present
+  (totals-present < 9))
+
+(def decongregated-total-present
+  (totals-present > 10))
+
+(def congregated-max
+  (max-occupancy-totals < 9))
+
+(def decongregated-max
+  (max-occupancy-totals > 10))
+
+{::clerk/visibility {:result :show}}
+(clerk/row
+ (clerk/vl
+  {:$schema "https://vega.github.io/schema/vega-lite/v5.json",
+   :description "Maximum Occupancy (HIQA Register)",
+   :data {:values [{:category "Congregated"  :value congregated-total-present}
+                   {:category "Decongregated"  :value decongregated-total-present}]}
+   :title "Number of Residents Present"
+   :encoding {:theta {:field :value, :type "quantitative" :stack "normalize"},
+              :color {:field :category, :type "nominal"}}
+   :layer [{:mark
+            {:type "arc" :outerRadius 100 :tooltip true}}
+           {:mark
+            {:type "text"
+             :radius 60
+             :fontSize 18
+             :fontWeight "bold"}
+            :encoding
+            {:text {:field :value :type :quantitative}
+             :color {:value "white"}}}]})
+ (clerk/vl
+  {:$schema "https://vega.github.io/schema/vega-lite/v5.json"
+   :description "Maximum Occupancy (HIQA Register)"
+   :data {:values [{:category "Congregated"  :value congregated-max}
+                   {:category "Decongregated"  :value decongregated-max}]}
+   :title "Maximum Occupancy (HIQA Register)"
+   :encoding {:theta {:field :value, :type "quantitative" :stack "normalize"}
+              :color {:field :category, :type "nominal"}}
+   :layer [{:mark
+            {:type "arc" :outerRadius 100 :tooltip true}}
+           {:mark
+            {:type "text"
+             :radius 60
+             :fontSize 18
+             :fontWeight "bold"}
+            :encoding
+            {:text {:field :value :type :quantitative}
+             :color {:value "white"}}}]}))
