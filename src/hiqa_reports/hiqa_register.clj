@@ -1,8 +1,8 @@
 (ns hiqa-reports.hiqa-register
   (:require [tablecloth.api :as tc]))
 
-(def register-file "resources/disability_register.csv")
-(def output-register-file "outputs/hiqa_register_with_report_urls.csv")
+(def register-file "resources/datasets/imported/disability_register.csv")
+(def output-register-file "resources/datasets/created/hiqa_register_with_report_urls.csv")
 
 (def register-tbl
   (tc/dataset register-file {:key-fn keyword}))
@@ -29,5 +29,5 @@
 ;;
 
 
-(def hiqa-reg-DB
-  (tc/dataset "resources/hiqa_register_with_report_urls.csv" {:key-fn keyword}))
+(def DS-hiqa-register
+  (tc/dataset output-register-file {:key-fn keyword}))

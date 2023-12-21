@@ -3,7 +3,7 @@
   (:require
    [hiqa-reports.parsers-writers :as dat]
    [hiqa-reports.tables :as tables]
-   [hiqa-reports.hiqa-register :refer [hiqa-reg-DB]]
+   [hiqa-reports.hiqa-register :refer [DS-hiqa-register]]
    [nextjournal.clerk :as clerk]
    [tablecloth.api :as tc]
    [aerial.hanami.common :as hc]
@@ -216,7 +216,7 @@
 (clerk/table qual-and-saf-data)
 
 
-(def ireland-map (slurp "resources/irish-counties-segmentized.topojson"))
+(def ireland-map (slurp "resources/datasets/imported/irish-counties-segmentized.topojson"))
 ;; ### Aggregate Compliance Levels by Area and Provider
 ;;
 ;; Figures are average, and for indicative purposes only. They do not caputre the types of compliance and the nuances around the difference regulations.
@@ -306,23 +306,48 @@
 ;; exercise their responsibilities appropriately.
 ;;
 
-(clerk/table
- (->
-  (tables/make-regulation-table dat/pdf-info-DB 23 :area)
-  (add-percent-noncompliant)))
+#_(clerk/table
+   (-> dat/pdf-info-DB
+       (tc/rows :as-maps)
+       (tables/make-regulation-table 23 :area)
+       (add-percent-noncompliant)))
 
-(defn county-data [tbl]
-  (reduce (fn [result entry]
-            (if-not (:area entry) result
-                    (let [area (:area entry)]
-                      (if (re-find #"Dublin" area)
-                        (conj result
-                              (assoc entry :area "Dublin"))
-                        (conj result entry)))))
-          []
-          tbl))
-          
-          
+(def compliance-tbl-reg-23
+  (-> dat/DS_pdf_info
+      (dat/agg-compliance-levels-for-reg-by-group 23 :address-of-centre)))
+
+(clerk/table
+ (-> compliance-tbl-reg-23
+     (tc/order-by :total :desc)
+     (tc/map-columns :percent-noncompliant [:percent-noncompliant]
+                     #(format "%.2f" %))
+     (tc/map-columns :percent-fully-compliant [:percent-fully-compliant]
+                     #(format "%.2f" %))))
+
+
+(defn average-Dublin [entries val]
+  (let [e-dub (remove #(= "Dublin" (:address-of-centre %)) entries)
+        dubs (filter #(= "Dublin" (:address-of-centre %)) entries)
+        c (count dubs)
+        tot (reduce + (map val dubs))
+        avg (float (/ tot c))]
+    (conj e-dub {:address-of-centre "Dublin" val avg})))
+
+
+(defn county-data [entries]
+  (let [val (second (keys (first entries)))]
+    (average-Dublin
+     (reduce (fn [result entry]
+               (if-not (:address-of-centre entry) result
+                       (let [area (:address-of-centre entry)]
+                         (if (re-find #"Dublin" area)
+                           (conj result
+                                 (assoc entry :address-of-centre "Dublin"))
+                           (conj result entry)))))
+             []
+             entries)
+     val)))
+
 
 (defn area-compliance-map [title type values h w]
   {:$schema   "https://vega.github.io/schema/vega-lite/v5.json"
@@ -334,48 +359,124 @@
    :transform [{:lookup "id"
                 :from   {:data   {:values values}
                          :fields [type]
-                         :key    "area"}}]
+                         :key    "address-of-centre"}}]
 
    :mark     "geoshape"
    :encoding {:color {:field type :type "quantitative"}}})
 
 
-(clerk/vl
- (area-compliance-map "NonCompliance % Regulation 23" "percent-noncompliant"
-                      (county-data
-                       (-> (tables/make-regulation-table dat/pdf-info-DB 23 :area)
-                           (add-percent-noncompliant)
-                           (tc/rows :as-maps)))
-                      400
-                      400))
+(clerk/row
+ (clerk/vl
+  (area-compliance-map "NonCompliance % Regulation 23" "percent-noncompliant"
+                       (county-data
+                        (-> compliance-tbl-reg-23
+                            (tc/select-columns [:address-of-centre :percent-noncompliant])
+                            (tc/rows :as-maps)))
+                       300
+                       300))
+ (clerk/table
+  (->
+   compliance-tbl-reg-23
+   (tc/select-columns [:address-of-centre :percent-noncompliant])
+   (tc/rows :as-maps)
+   county-data
+   tc/dataset
+   (tc/order-by :percent-noncompliant :desc)
+   (tc/map-columns :percent-noncompliant [:percent-noncompliant]
+                   #(format "%.2f" %))
+   (tc/select-rows (range 10))))
+ (clerk/table
+  (->
+   compliance-tbl-reg-23
+   (tc/select-columns [:address-of-centre :percent-noncompliant])
+   (tc/order-by :percent-noncompliant :desc)
+   (tc/map-columns :percent-noncompliant [:percent-noncompliant]
+                   #(format "%.2f" %))
+   (tc/select-rows (range 10)))))
 
 
 (clerk/row
  (clerk/vl
-  (area-compliance-map "Number of NonCompliant Reg 23" "notcompliant"
+  (area-compliance-map "Number of NonCompliant Reg 23" "num-notcompliant"
                        (county-data
-                        (-> (tables/make-regulation-table dat/pdf-info-DB 23 :area)
-                            (add-percent-noncompliant)
+                        (-> compliance-tbl-reg-23
+                            (tc/select-columns [:address-of-centre :num-notcompliant])
                             (tc/rows :as-maps)))
                        300
                        300))
+ (clerk/table
+  (-> compliance-tbl-reg-23
+      (tc/select-columns [:address-of-centre :num-notcompliant])
+      (tc/order-by :num-notcompliant :desc)
+      (tc/select-rows (range 10)))))
 
-
+(clerk/row
  (clerk/vl
-  (area-compliance-map "Number of Compliant Reg 23" "compliant"
+  (area-compliance-map "Number of Compliant Reg 23" "num-compliant"
                        (county-data
-                        (-> (tables/make-regulation-table dat/pdf-info-DB 23 :area)
-                            (add-percent-noncompliant)
+                        (-> compliance-tbl-reg-23
+                            (tc/select-columns [:address-of-centre :num-compliant])
                             (tc/rows :as-maps)))
                        300
-                       300)))
+                       300))
+ (clerk/table
+  (-> compliance-tbl-reg-23
+     (tc/select-columns [:address-of-centre :num-compliant])
+     (tc/order-by :num-compliant :desc)
+     (tc/select-rows (range 10)))))
+       
 
+(def compliance-tbl-reg-23-providers
+  (-> dat/DS_pdf_info
+      (dat/agg-compliance-levels-for-reg-by-group 23 :name-of-provider)))
+
+(defn convert-%-to-string [DS]
+  (-> DS
+      (tc/map-columns :percent-noncompliant [:percent-noncompliant]
+                       #(format "%.2f" %))
+      (tc/map-columns :percent-fully-compliant [:percent-fully-compliant]
+                      #(format "%.2f" %))))
+      
+
+;; #### First 10 Providers sorted by total inspections
+(clerk/table
+ (-> compliance-tbl-reg-23-providers
+     (tc/order-by :total :desc)
+     (tc/select-rows (range 10))
+     convert-%-to-string))
+
+;; #### First 10 Providers sorted by percentage fully compliant
+(clerk/table
+ (-> compliance-tbl-reg-23-providers
+     (tc/order-by :percent-fully-compliant :desc)
+     (tc/select-rows (range 10))
+     convert-%-to-string))
+
+
+;; #### First 10 Providers with more than 50 inspections sorted by percentage fully compliant
+(clerk/table
+ (-> compliance-tbl-reg-23-providers
+     (tc/select-rows #(< 50 (% :total)))
+     (tc/order-by :percent-fully-compliant :desc)
+     (tc/select-rows (range 10))
+     convert-%-to-string))
+
+;; #### First 10 Providers sorted by percentage non compliant
 
 (clerk/table
- (->
-  (tables/make-regulation-table dat/pdf-info-DB 23 :provider)
-  (add-percent-noncompliant)))
+ (-> compliance-tbl-reg-23-providers
+     (tc/order-by :percent-noncompliant :desc)
+     (tc/select-rows (range 10))
+     convert-%-to-string))
 
+;; #### First 10 Providers with more than 50 inspections sorted by percentage non compliant
+
+(clerk/table
+ (-> compliance-tbl-reg-23-providers
+     (tc/select-rows #(< 50 (% :total)))
+     (tc/order-by :percent-noncompliant :desc)
+     (tc/select-rows (range 10))
+     convert-%-to-string))
 ;; ### Regulation 28: Fire Precautions
 ;;
 ;;Indicators of compliance include:
@@ -427,35 +528,35 @@
   (add-percent-noncompliant)))
 
 
-(clerk/vl
- (area-compliance-map "NonCompliance % Rgulation 28" "percent-noncompliant"
-                      (county-data
-                       (-> (tables/make-regulation-table dat/pdf-info-DB 28 :area)
-                           (add-percent-noncompliant)
-                           (tc/rows :as-maps)))
-                      400
-                      400))
+;; (clerk/vl
+;;  (area-compliance-map "NonCompliance % Rgulation 28" "percent-noncompliant"
+;;                       (county-data
+;;                        (-> (tables/make-regulation-table dat/pdf-info-DB 28 :area)
+;;                            (add-percent-noncompliant)
+;;                            (tc/rows :as-maps)))
+;;                       400
+;;                       400))
 
 
-(clerk/row
- (clerk/vl
-  (area-compliance-map "Number of NonCompliant Reg 28" "notcompliant"
-                       (county-data
-                        (-> (tables/make-regulation-table dat/pdf-info-DB 28 :area)
-                            (add-percent-noncompliant)
-                            (tc/rows :as-maps)))
-                       300
-                       300))
+;; (clerk/row
+;;  (clerk/vl
+;;   (area-compliance-map "Number of NonCompliant Reg 28" "notcompliant"
+;;                        (county-data
+;;                         (-> (tables/make-regulation-table dat/pdf-info-DB 28 :area)
+;;                             (add-percent-noncompliant)
+;;                             (tc/rows :as-maps)))
+;;                        300
+;;                        300))
 
 
- (clerk/vl
-  (area-compliance-map "Number of Compliant Reg 28" "compliant"
-                       (county-data
-                        (-> (tables/make-regulation-table dat/pdf-info-DB 28 :area)
-                            (add-percent-noncompliant)
-                            (tc/rows :as-maps)))
-                       300
-                       300)))
+;;  (clerk/vl
+;;   (area-compliance-map "Number of Compliant Reg 28" "compliant"
+;;                        (county-data
+;;                         (-> (tables/make-regulation-table dat/pdf-info-DB 28 :area)
+;;                             (add-percent-noncompliant)
+;;                             (tc/rows :as-maps)))
+;;                        300
+;;                        300)))
 
 
 (clerk/table

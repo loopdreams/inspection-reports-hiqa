@@ -26,25 +26,25 @@
 
 (def non-compliance-by-provider
   (compliance-by-group
-   dat/DS_pdf_info_compliance
+   dat/DS_pdf_info_agg_compliance
    :name-of-provider
    :percent-noncompliant))
 
 (def full-compliance-by-provider
   (compliance-by-group
-   dat/DS_pdf_info_compliance
+   dat/DS_pdf_info_agg_compliance
    :name-of-provider
    :percent-fully-compliant))
 
 (def non-compliance-by-area
   (compliance-by-group
-   dat/DS_pdf_info_compliance
+   dat/DS_pdf_info_agg_compliance
    :address-of-centre
    :percent-noncompliant))
 
 (def full-compliance-by-area
   (compliance-by-group
-   dat/DS_pdf_info_compliance
+   dat/DS_pdf_info_agg_compliance
    :address-of-centre
    :percent-fully-compliant))
       

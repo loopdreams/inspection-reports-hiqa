@@ -5,13 +5,13 @@
    [clojure.java.io :as io]
    [clojure.set :as set]
    [clojure.string :as str]
-   [hiqa-reports.hiqa-register :refer [hiqa-reg-DB pdf-matcher scrape-all-reports output-register-file register-tbl]]))
+   [hiqa-reports.hiqa-register :refer [DS-hiqa-register pdf-matcher scrape-all-reports output-register-file register-tbl]]))
 
 (def destination-dir "inspection_reports/")
 (def report-urls-list-dir "resources/report_urls_list/")
 
 (def report-list
-  (->> (:reports hiqa-reg-DB)
+  (->> (:reports DS-hiqa-register)
        (map edn/read-string)
        flatten
        (remove nil?)))
@@ -55,9 +55,9 @@
        str))
 
 (defn- diff-reports [report-list & reports-file]
-  (let [file (if reports-file (first reports-file) (most-recent-reports-file))]
-    (let [on-disk (str/split-lines (slurp file))]
-      (into [] (set/difference (set on-disk) (set report-list))))))
+  (let [file (if reports-file (first reports-file) (most-recent-reports-file))
+        on-disk (str/split-lines (slurp file))]
+    (into [] (set/difference (set on-disk) (set report-list)))))
 
 (defn- update-pdfs! [& reports-file]
   (pmap save-pdf! (diff-reports report-list reports-file)))

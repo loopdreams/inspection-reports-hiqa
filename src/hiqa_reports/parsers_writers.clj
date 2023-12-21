@@ -11,9 +11,8 @@
 
 (def all-reports-pdfs (rest (file-seq reports-directory)))
 
-(def full-json-out "outputs/pdf_data_full.json")
-(def json-out "outputs/pdf_data.json")
-(def full-csv-out "outputs/pdf_data_full.csv")
+(def full-json-out "resources/json/pdf_data_full.json")
+(def full-csv-out "resources/datasets/created/pdf_data_full.csv")
 
 (def frontmatter-fields ["Name of designated centre:"
                          "Name of provider:"
@@ -293,11 +292,10 @@
       :data
       last))
 
-
 (def pdf-info-DB (json/parse-string (slurp "outputs/pdf_info.json") true))
 
-(def DS_pdf_info_compliance
-  (-> DS_pdf_info
+(defn aggregate-compliance-levels [DS]
+  (-> DS
       (tc/map-columns :num-compliant
                       (tc/column-names DS_pdf_info #":Regulation.*")
                       (fn [& rows]
@@ -309,10 +307,13 @@
       (tc/map-columns :num-substantiallycompliant
                       (tc/column-names DS_pdf_info #":Regulation.*")
                       (fn [& rows]
-                        ((reg-map-cols "Substantially compliant") rows)))
+                        ((reg-map-cols "Substantially compliant") rows)))))
+
+(defn sum-aggregate-compliance-levels [DS]
+  (-> DS
       (tc/map-columns :total [:num-compliant :num-notcompliant :num-substantiallycompliant]
-                          (fn [& rows]
-                            (reduce + rows)))
+                (fn [& rows]
+                  (reduce + rows)))
       (tc/map-columns :percent-noncompliant [:num-notcompliant :total]
                       (fn [non tot]
                         (if (zero? non) 0
@@ -321,6 +322,30 @@
                       (fn [com tot]
                         (if (zero? com) 0
                             (* 100 (float (/ com tot))))))))
+      
+
+
+(defn agg-compliance-levels-for-reg [DS reg-no]
+  (-> DS
+      (tc/drop-columns #(and (str/starts-with? (name %) "Regulation")
+                             (not (str/ends-with? (name %) (str reg-no)))))
+      aggregate-compliance-levels))
+
+(defn agg-compliance-levels-for-reg-by-group [DS reg-no group]
+  (-> (agg-compliance-levels-for-reg DS reg-no)
+      (tc/group-by group)
+      (tc/aggregate {:num-compliant #(reduce + (% :num-compliant))
+                     :num-notcompliant #(reduce + (% :num-notcompliant))
+                     :num-substantiallycompliant #(reduce + (% :num-substantiallycompliant))})
+      sum-aggregate-compliance-levels
+      (tc/rename-columns {:$group-name group})))
+      
+      
+
+;; TODO consider adding as an output
+(def DS_pdf_info_agg_compliance (-> DS_pdf_info
+                                    aggregate-compliance-levels
+                                    sum-aggregate-compliance-levels))
 
 ;; OUTPUTS
 (comment

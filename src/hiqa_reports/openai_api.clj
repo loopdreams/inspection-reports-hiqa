@@ -4,7 +4,7 @@
    [clojure.edn :as edn]
    [clojure.java.io :as io]
    [clojure.string :as str]
-   [hiqa-reports.parsers-writers :refer [DS_pdf_info pdf-info-DB]]
+   [hiqa-reports.parsers-writers :refer [DS_pdf_info]]
    [tablecloth.api :as tc]
    [wkok.openai-clojure.api :as api]))
 

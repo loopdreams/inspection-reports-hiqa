@@ -2,7 +2,7 @@
   #:nextjournal.clerk{:visibility {:code :fold}, :toc true}
   (:require
    [clojure.string :as str]
-   [hiqa-reports.hiqa-register :refer [hiqa-reg-DB]]
+   [hiqa-reports.hiqa-register :refer [DS-hiqa-register]]
    [hiqa-reports.pdf-get :refer [report-list-by-year]]
    [nextjournal.clerk :as clerk]
    [tablecloth.api :as tc]))
@@ -37,14 +37,14 @@
 ;; The HIQA register with the additional report addresses is [located here :TODO: add link](link).
 
 (clerk/table
- (-> hiqa-reg-DB
+ (-> DS-hiqa-register
      (tc/select-columns [:Centre_ID :County :Registration_Date :URL :reports])
      (tc/select-rows (range 11))))
 
 ;; Some additional info on the HIQA register (with added reports column):
 
 (clerk/table
- (-> hiqa-reg-DB (tc/info :columns)))
+ (-> DS-hiqa-register (tc/info :columns)))
 
 
 
