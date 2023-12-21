@@ -1,7 +1,7 @@
 (ns notebooks.01-general-information
   #:nextjournal.clerk{:visibility {:code :fold}, :toc :collapsed}
   (:require
-   [hiqa-reports.hiqa-register :refer [hiqa-reg-DB]]
+   [hiqa-reports.hiqa-register :refer [DS-hiqa-register]]
    [nextjournal.clerk :as clerk]
    [tablecloth.api :as tc]
    [hiqa-reports.parsers-writers :as dat]
@@ -202,7 +202,7 @@
                          (tc/group-by :centre-id)
                          :name
                          count)
-       total-num (-> hiqa-reg-DB (tc/row-count))
+       total-num (-> DS-hiqa-register (tc/row-count))
        percentage-coverage (int (* 100 (/ num-inspected total-num)))]
    (str
     "Across the reports, there were **"
@@ -360,7 +360,7 @@
  (hc/xform
   ht/bar-chart
   :DATA
-  (-> hiqa-reg-DB
+  (-> DS-hiqa-register
       (tc/group-by :Maximum_Occupancy)
       (tc/aggregate {:number-of-centres #(count (% :Centre_ID))})
       (tc/rename-columns {:$group-name :maximum-occupancy})
@@ -384,7 +384,7 @@
                           (% :date)
                           (% :number-of-residents-present))})
         (tc/rename-columns {:$group-name :Centre_ID})
-        (tc/full-join hiqa-reg-DB :Centre_ID)
+        (tc/full-join DS-hiqa-register :Centre_ID)
         (tc/select-columns [:Centre_ID :Maximum_Occupancy :no-residents-most-recent])
         (tc/drop-missing :no-residents-most-recent)
         (tc/order-by :Centre_ID)
@@ -397,7 +397,7 @@
 (clerk/md
  (str
   "- The **total** maximum occupancy across all centres on the HIQA register is: **"
-  (->> (:Maximum_Occupancy hiqa-reg-DB)
+  (->> (:Maximum_Occupancy DS-hiqa-register)
        (reduce +))
   "**"
   "\n"
@@ -449,7 +449,7 @@
 
 (defn max-occupancy-totals [fn no]
   (reduce +
-          (-> hiqa-reg-DB
+          (-> DS-hiqa-register
               (tc/select-rows #(fn no (% :Maximum_Occupancy)))
               :Maximum_Occupancy)))
 
