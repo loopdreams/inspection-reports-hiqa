@@ -83,7 +83,7 @@
   (when date-of-inspection
     (let [dt-str
           (if (re-find #"and|&" date-of-inspection)
-            (second (str/split date-of-inspection #"and "))
+            (second (str/split date-of-inspection #"and |& "))
             date-of-inspection)]
       (when dt-str
         (jt/local-date "ddMMMMyyyy" (str/replace dt-str #" " ""))))))
@@ -142,7 +142,6 @@
       (str/replace #"\n" "")
       str/trim
       (str/replace #"  Page \d+ of \d+  " "")))
-
 
 (defn test-for-alt-observation-text [pdf-file]
   (let [text (text/extract pdf-file)]
@@ -288,6 +287,13 @@
 (def DS_pdf_info
   (-> (tc/dataset full-csv-out {:key-fn keyword})))
 
+(comment
+  (-> DS_pdf_info
+      (tc/group-by :year)
+      :data
+      last))
+
+
 (def pdf-info-DB (json/parse-string (slurp "outputs/pdf_info.json") true))
 
 (def DS_pdf_info_compliance
@@ -329,7 +335,6 @@
 
   (full-csv-write!))
   ;; 3098
-
 
 
 (comment

@@ -10,6 +10,8 @@
    [aerial.hanami.templates :as ht]
    [java-time.api :as jt]))
 
+
+
 ^{::clerk/visibility {:result :hide}}
 (swap! hc/_defaults assoc :BACKGROUND "white")
 
@@ -65,78 +67,6 @@
 ;;
 ;; [Additional info on regulations](https://www.hiqa.ie/sites/default/files/2018-02/Assessment-of-centres-DCD_Guidance.pdf)
 ;;
-;; ## General Information from the Reports
-;;
-
-(clerk/md
- (str "- There were **"
-      (-> dat/DS_pdf_info
-          (tc/group-by :centre-id)
-          :name
-          count)
-      "** centres included across **"
-      (-> dat/DS_pdf_info tc/row-count)
-      "** reports.\n"
-      "- There were **"
-      (-> dat/DS_pdf_info
-          (tc/group-by :name-of-provider)
-          :name
-          count)
-      "** providers."))
-
-;; ### Inspections by Year
-
-(clerk/vl
- (hc/xform
-  ht/bar-chart
-  :DATA (-> dat/DS_pdf_info
-            (tc/group-by :year)
-            (tc/process-group-data #(tc/row-count %))
-            (tc/as-regular-dataset)
-            (tc/drop-columns :group-id)
-            (tc/rename-columns {:name "Year"
-                                :data "Inspections"})
-            (tc/order-by "Year" [:desc])
-            (tc/rows :as-maps))
-  :TITLE "Number of Inspections by Year"
-  :X "Year" :XTYPE :nominal
-  :Y "Inspections" :YTYPE :quantitative))
-
-;; ### Inspections by month
-
-{::clerk/visibility {:result :hide}}
-(def month-data
-  (reduce concat
-          (let [data (-> dat/DS_pdf_info
-                         (tc/select-columns [:year :date])
-                         (tc/drop-missing :date)
-                         (tc/rows :as-maps))
-                sorted-m
-                (reduce (fn [result {:keys [year date]}]
-                          (let [month (jt/as date :month-of-year)]
-                            (update-in result [year month] (fnil inc 0))))
-                        {}
-                        data)]
-            (for [year (keys sorted-m)]
-              (for [month (keys (sorted-m year))]
-                {:year year :month month :value ((sorted-m year) month)})))))
-
-{::clerk/visibility {:result :show}}
-(clerk/vl
- {:$schema "https://vega.github.io/schema/vega-lite/v5.json"
-  :data {:values month-data}
-  :mark {:type :bar :tooltip true}
-  :width 600
-  :height 400
-  :encoding
-  {:x {:field :month
-       :type "ordinal"}
-   :y {:field :value
-       :type "quantitative"
-       :title "Number of Inspections"}
-   :color {:field :year
-           :type "nominal"}}})
-
 
 
 ;; ### Inspections per Region
@@ -199,149 +129,8 @@
    :Y "Number of Providers" :TYPE :quantitative)))
  
 
-;; ### Inspection Types
-
-(clerk/vl
- {:$schema "https://vega.github.io/schema/vega-lite/v5.json"
-  :description "A simple donut chart with embedded data."
-  :data {:values (-> dat/DS_pdf_info
-                     (tc/group-by :type-of-inspection)
-                     (tc/aggregate-columns [:report-id]
-                                           #(count %))
-                     (tc/rename-columns {:$group-name "Type of Inspection"
-                                         :report-id "Number of Inspections"})
-                     (tc/rows :as-maps))}
-  
-  :mark {:type "arc" :innerRadius 50 :tooltip true}
-  :encoding {:theta {:field "Number of Inspections" :type "quantitative"}
-             :color {:field "Type of Inspection" :type "nominal"}}})
-               
 
 ;;
-;; ### Number of Inspections Per Centre
-
-
-(clerk/table
- {:head ["Number of Inspections" "Number of Centres"]
-  :rows
-  (sort
-   (into []
-         (frequencies
-          (map
-           (comp count second)
-           (-> (tc/dataset "outputs/pdf_info_alt.csv")
-               (tc/group-by "centre-id" {:result-type :as-indexes}))))))})
-
-;; ### Residents Present at time of inspection
-;;
-;; As there can be multiple inspections per centre, this takes only the number of residents
-;; present at the time of the  **most recent** inspection
-
-{::clerk/visibility {:result :hide}}
-(defn most-recent-resident-no [dates resnum]
-  (->> resnum
-       (interleave dates)
-       (partition 2)
-       (sort-by first)
-       reverse
-       first
-       second))
-
-{::clerk/visibility {:result :show}}
-(clerk/vl
- (hc/xform
-  ht/bar-chart
-  :DATA
-  (-> dat/DS_pdf_info
-      (tc/drop-missing :number-of-residents-present)
-      (tc/group-by :centre-id)
-      (tc/aggregate {:no-residents-most-recent
-                     #(most-recent-resident-no
-                       (% :date)
-                       (% :number-of-residents-present))})
-      (tc/group-by :no-residents-most-recent)
-      (tc/aggregate {:centres #(count (% :$group-name))})
-      (tc/rename-columns {:$group-name :number-of-residents-present})
-      (tc/rows :as-maps))
-  :X :number-of-residents-present :XTYPE :nominal
-  :Y :centres :YTPE :quantitative))
-
-;; #### Comparisons with the HIQA Register
-
-(clerk/vl
- (hc/xform
-  ht/bar-chart
-  :DATA
-  (-> hiqa-reg-DB
-      (tc/group-by :Maximum_Occupancy)
-      (tc/aggregate {:number-of-centres #(count (% :Centre_ID))})
-      (tc/rename-columns {:$group-name :maximum-occupancy})
-      (tc/rows :as-maps))
-  :X :maximum-occupancy :XTYPE :nominal
-  :Y :number-of-centres))
-
-;; Below is a table comparing the maximum occupancy for a centre as recorded in the HIQA register vs.
-;; the number of residents present at the date of the last inspection. There are obviously a lot of
-;; caveats around this kind of comparison, since the 'number of residents' present at the precise time
-;; of the inspection is highly dependant on a lot of other factors not captured here.
-;;
-(def joined-occupancy
-  (-> dat/DS_pdf_info
-        (tc/drop-missing :number-of-residents-present)
-        (tc/group-by :centre-id)
-        (tc/aggregate {:no-residents-most-recent
-                        #(most-recent-resident-no
-                          (% :date)
-                          (% :number-of-residents-present))})
-        (tc/rename-columns {:$group-name :Centre_ID})
-        (tc/full-join hiqa-reg-DB :Centre_ID)
-        (tc/select-columns [:Centre_ID :Maximum_Occupancy :no-residents-most-recent])
-        (tc/drop-missing :no-residents-most-recent)
-        (tc/order-by :Centre_ID)
-        (tc/map-columns :difference
-                         [:Maximum_Occupancy :no-residents-most-recent]
-                         #(- %1 %2))))
-
-(clerk/table joined-occupancy)
-
-(clerk/md
- (str
-  "- The **total** maximum occupancy across all centres on the HIQA register is: **"
-  (->> (:Maximum_Occupancy hiqa-reg-DB)
-       (reduce +))
-  "**"
-  "\n"
-  "- The total maximum occupancy across centres where inspections also occured is: **"
-  (->> (:Maximum_Occupancy joined-occupancy)
-       (reduce +))
-  "**"
-  "\n"
-  "- The total 'residents present' at time of inspection is: **"
-  (->> (:no-residents-most-recent joined-occupancy)
-       (reduce +))
-  "**"
-  "\n"
-  "- The difference between 'max' occupancy of centres inspected and 'residents present' is: **"
-  (->> (:difference joined-occupancy)
-       (reduce +))
-  "**"
-  "\n"
-  "- The difference between 'max occupancy' and 'residents present' for **congregated settings** is: **"
-  (->> (:difference
-        (-> joined-occupancy
-            (tc/select-rows #(< 9 (% :Maximum_Occupancy)))))
-       (reduce +))
-  "**"))
-
-;; Surpisingly, there were also a number of centres with 'more' residents present than was listed as 'maximum occupancy'.
-;;
-(clerk/table
- (-> joined-occupancy
-     (tc/select-rows #(> 0 (% :difference)))
-     (tc/order-by :difference)))
-
-;; After looking up the reports for the first few entries here, it seems that the HIQA register might be out of date.
-
 ;; ## Overall Compliance Levels per Regulation
 
 {::clerk/visibility {:result :hide}}
@@ -399,7 +188,7 @@
    :title title
    :encoding {:y {:field "regulation" :type "nominal" :axis { :labelLimit 0 :labelFontSize 12} :title false}
               :x {:field "type" :type "nominal" :axis {:title "Judgement" :labelFontSize 12}}
-              :color {:field "value" :type "quantitative" :scale {:scheme "bluegreen"}}
+              :color {:field "value" :type "quantitative" :title "No. of Centres" :scale {:scheme "bluegreen"}}
               :config {:axis {:grid true :tickBand "extent"}}}
    :width 200
    :height 600})
@@ -445,25 +234,6 @@
      (tc/order-by :percent-fully-compliant :desc)))
 
 
-;; ### Congregated Settings
-;;
-;; Congregated settings are where there are 10 or more people living in a centre.
-
-
-#_(def congregated_DS_cap
-    (-> cap-and-cap-data
-        (tc/drop-missing :number-of-residents-present)
-        (tc/select-rows #(< 9 (% :number-of-residents-present)))))
-
-#_(tables/make-compliance-tc-table
-   (-> dat/DS_pdf_info
-       (tc/drop-missing :number-of-residents-present)
-       (tc/select-rows #(< 9 (% :number-of-residents-present)))
-       (tc/rows :as-maps))
-   tables/compliance-levels-table-quality)
-
-
-    
 
 ;; ## Regulations by Provider and Area
 ;;
@@ -571,7 +341,7 @@
 
 
 (clerk/vl
- (area-compliance-map "NonCompliance % Rgulation 23" "percent-noncompliant"
+ (area-compliance-map "NonCompliance % Regulation 23" "percent-noncompliant"
                       (county-data
                        (-> (tables/make-regulation-table dat/pdf-info-DB 23 :area)
                            (add-percent-noncompliant)

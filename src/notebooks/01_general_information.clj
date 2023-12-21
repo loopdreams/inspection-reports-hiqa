@@ -374,6 +374,7 @@
 ;; caveats around this kind of comparison, since the 'number of residents' present at the precise time
 ;; of the inspection is highly dependant on a lot of other factors not captured here.
 ;;
+;; TODO Check these again
 (def joined-occupancy
   (-> dat/DS_pdf_info
         (tc/drop-missing :number-of-residents-present)

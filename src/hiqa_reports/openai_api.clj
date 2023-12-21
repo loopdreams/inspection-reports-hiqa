@@ -9,10 +9,9 @@
    [wkok.openai-clojure.api :as api]))
 
 (def auth (:auth (edn/read-string (slurp "creds.edn"))))
-(def output-f "outputs/GPT_response.csv")
 (def responses-dir "GPT_responses/")
 
-(def processed-reports-DB-f "outputs/GPT_responses.csv")
+(def processed-reports-DB-f-out "outputs/GPT_responses.csv")
 
 (def prompt-parts
   ["Summarize the following text into 5 keywords reflecting the sentiment of the residents. Do not include the word 'residents' as a keyword."
@@ -26,12 +25,12 @@
 
 (def prompt (str/join #" " prompt-parts))
 
-(defn request-keyword-summary [observations]
+(defn- request-keyword-summary [observations]
   (api/create-chat-completion {:model "gpt-3.5-turbo"
                                :messages [{:role "user" :content (str prompt observations)}]}
                               {:api-key auth}))
 
-(defn fetch-and-log-response! [input-entries output-f]
+(defn- fetch-and-log-response! [input-entries output-f]
   (json/generate-stream
    (reduce (fn [result {:keys [observations] :as entry}]
              (let [response (request-keyword-summary observations)]
@@ -44,13 +43,13 @@
    (clojure.java.io/writer output-f)))
 
 
-(defn make-DB-backup []
-  (when (.exists (io/file processed-reports-DB-f))
-    (io/copy (io/file processed-reports-DB-f)
-             (io/file (str processed-reports-DB-f "_backup_"
+(defn- make-DB-backup []
+  (when (.exists (io/file processed-reports-DB-f-out))
+    (io/copy (io/file processed-reports-DB-f-out)
+             (io/file (str processed-reports-DB-f-out "_backup_"
                            (str (System/currentTimeMillis)))))))
 
-(defn extract-response [response]
+(defn- extract-response [response]
   (-> response
       :response
       :choices
@@ -59,9 +58,9 @@
       :content
       edn/read-string))
 
-(defn add-responses-to-db! [json-f]
-  (let [DB    (if (.exists (io/file processed-reports-DB-f))
-                (-> (tc/dataset processed-reports-DB-f {:key-fn keyword})
+(defn- add-responses-to-db! [json-f]
+  (let [DB    (if (.exists (io/file processed-reports-DB-f-out))
+                (-> (tc/dataset processed-reports-DB-f-out {:key-fn keyword})
                     (tc/rows :as-maps))
                 [])
         input (json/parse-stream (io/reader json-f) true)
@@ -78,11 +77,11 @@
     (do
       (make-DB-backup)
       (-> (tc/dataset new-DB)
-          (tc/write! processed-reports-DB-f)))))
+          (tc/write! processed-reports-DB-f-out)))))
 
-(defn build-responses-db! [json-f]
-  (let [DB    (if (.exists (io/file processed-reports-DB-f))
-                (-> (tc/dataset processed-reports-DB-f {:key-fn keyword})
+(defn- build-responses-db! [json-f]
+  (let [DB    (if (.exists (io/file processed-reports-DB-f-out))
+                (-> (tc/dataset processed-reports-DB-f-out {:key-fn keyword})
                     (tc/rows :as-maps))
                 [])
         input (json/parse-stream (io/reader json-f) true)
@@ -97,11 +96,11 @@
                            (assoc :phrases phrases)
                            (assoc :summary summary))))]
     (-> (tc/dataset new-DB)
-        (tc/write! processed-reports-DB-f))))
+        (tc/write! processed-reports-DB-f-out))))
 
 ;; Build db from responses json files (generated below)
 (comment
-  (add-responses-to-db! (str responses-dir "batch_11.json")))
+  (add-responses-to-db! (str responses-dir "batch_24.json")))
 
 (comment
   (map build-responses-db! (sort (rest (file-seq (io/file responses-dir))))))
@@ -113,7 +112,7 @@
                      (tc/rows :as-maps))))
 
 ;; Fetching responses in batches
-(comment
+(comment)
   ;; (fetch-and-log-response! (nth batches 1) (str responses-dir  "batch_01.json"))
   ;; (fetch-and-log-response! (nth batches 0) (str responses-dir  "batch_00.json"))
   ;; (fetch-and-log-response! (nth batches 2) (str responses-dir  "batch_02.json"))
@@ -146,33 +145,33 @@
 
 
   ;; (fetch-and-log-response! (nth batches 11) (str responses-dir "batch_11.json"))
-  (pmap #(fetch-and-log-response! %1 %2)
-        [(nth batches 13)
-         (nth batches 14)
-         (nth batches 15)
-         (nth batches 17)]
-        [(str responses-dir "batch_13.json")
-         (str responses-dir "batch_14.json")
-         (str responses-dir "batch_15.json")
-         (str responses-dir "batch_17.json")])
-  (fetch-and-log-response! (nth batches 18) (str responses-dir "batch_18.json"))
-  (fetch-and-log-response! (nth batches 19) (str responses-dir "batch_19.json"))
-  (fetch-and-log-response! (nth batches 20) (str responses-dir "batch_20.json"))
-  (fetch-and-log-response! (nth batches 21) (str responses-dir "batch_21.json"))
-  (fetch-and-log-response! (nth batches 22) (str responses-dir "batch_22.json"))
-  (fetch-and-log-response! (nth batches 23) (str responses-dir "batch_23.json"))
-  (fetch-and-log-response! (nth batches 24) (str responses-dir "batch_24.json"))
-  (fetch-and-log-response! (nth batches 25) (str responses-dir "batch_25.json"))
-  (fetch-and-log-response! (nth batches 26) (str responses-dir "batch_26.json"))
-  (fetch-and-log-response! (nth batches 27) (str responses-dir "batch_27.json"))
-  (fetch-and-log-response! (nth batches 28) (str responses-dir "batch_28.json"))
-  (fetch-and-log-response! (nth batches 29) (str responses-dir "batch_29.json"))
-  (fetch-and-log-response! (nth batches 30) (str responses-dir "batch_30.json")))
+  ;; (pmap #(fetch-and-log-response! %1 %2)
+  ;;       [(nth batches 15)
+  ;;        (nth batches 17)]
+  ;;       [(str responses-dir "batch_15.json")
+  ;;        (str responses-dir "batch_17.json")])
+  ;; (fetch-and-log-response! (nth batches 13) (str responses-dir "batch_13.json"))
+  ;;
+
+  ;; (fetch-and-log-response! (nth batches 19) (str responses-dir "batch_19.json"))
+  ;; (fetch-and-log-response! (nth batches 20) (str responses-dir "batch_20.json"))
+  ;; (fetch-and-log-response! (nth batches 21) (str responses-dir "batch_21.json"))
+  ;; (fetch-and-log-response! (nth batches 22) (str responses-dir "batch_22.json"))
+  ;; (fetch-and-log-response! (nth batches 23) (str responses-dir "batch_23.json"))
+  ;; (fetch-and-log-response! (nth batches 24) (str responses-dir "batch_24.json"))
+  ;; (fetch-and-log-response! (nth batches 25) (str responses-dir "batch_25.json"))
+  ;; (fetch-and-log-response! (nth batches 26) (str responses-dir "batch_26.json"))
+  ;; (fetch-and-log-response! (nth batches 27) (str responses-dir "batch_27.json"))
+  ;; (time
+  ;;  (fetch-and-log-response! (nth batches 28) (str responses-dir "batch_28.json")))
+  ;; (fetch-and-log-response! (nth batches 29) (str responses-dir "batch_29.json"))
+  ;; (fetch-and-log-response! (nth batches 30) (str responses-dir "batch_30.json")))
 
 ;;Batch1: "Elapsed time: 384379.147459 msecs" 6+ minutes
 ;;Cost 18c
 ;; Estimated total $5.58
-
+;; Actual total $6.69 (including some trail and error costs...)
+;; Elapsed time: 299130.325958 msecs (different internet connection)
 
 
 ;; Validation/cleaning
@@ -182,7 +181,7 @@
 
 (comment
   (word-count prompt)
-  (map #(word-count (str (:observations %))) (nth batches 11))
+  (map #(word-count (str (:observations %))) (nth batches 13))
   (nth (nth batches 11) 91))
 
 ;; The issue with the above entry seems to be an alternative heading for the 'observations'
@@ -192,32 +191,9 @@
 
 
 
-;; TODO Delete later/move to analysis
-(comment
-  (reverse
-   (sort-by val
-            (frequencies
-             (flatten
-              (map edn/read-string
-                   (-> (tc/dataset processed-reports-DB-f {:key-fn keyword})
-                       (tc/select-rows #(= "positive" (% :rating)))
-                       :phrases)))))))
-
-;; TODO Delete later/move to analysis
-(comment
-  (reverse
-   (sort-by val
-            (frequencies
-             (flatten
-              (map edn/read-string
-                   (-> (tc/dataset processed-reports-DB-f {:key-fn keyword})
-                       (tc/select-rows #(= "neutral" (% :rating)))
-                       :keywords)))))))
-
-
 ;; Validation - entry IDs empty ratings
 (comment
-  (-> (tc/dataset processed-reports-DB-f {:key-fn keyword})
+  (-> (tc/dataset processed-reports-DB-f-out {:key-fn keyword})
       (tc/select-rows #(= (% :rating) nil))
       :report-id))
 
@@ -244,9 +220,10 @@
            "}")))
 
 ;; loop through entries and check which fail to render as edn
-(comment
-  (loop [[x & xs] (drop 72 (json/parse-stream (io/reader (str responses-dir "batch_16.json")) true))
-         c 72]
+
+(defn print-error-idx [start-at batch-no]
+  (loop [[x & xs] (drop start-at (json/parse-stream (io/reader (str responses-dir "batch_" batch-no ".json")) true))
+         c start-at]
     (println c)
     (when x
       (extract-response x)
@@ -254,10 +231,13 @@
        xs
        (inc c)))))
 
+(comment
+  (print-error-idx 0 30))
+
 ;; entry ids of failed indexes
 (comment
   (let [e
-        (nth (json/parse-stream (io/reader (str responses-dir "batch_16.json")) true) 71)]
+        (nth (json/parse-stream (io/reader (str responses-dir "batch_14.json")) true) 71)]
     (-> e
         :response
         :choices
@@ -265,13 +245,41 @@
         :message
         :content
         edn/read-string))
-  (let [e (nth (json/parse-stream (io/reader (str responses-dir "batch_16.json")) true) 71)]
+  (let [e (nth (json/parse-stream (io/reader (str responses-dir "batch_30.json")) true) 95)]
     (:report-id e)))
 
 (comment
-  (fix-malformed-string "Keywords: improvements, compliance, amenities, vehicles, renovations\nPhrases: significant improvements, high level of compliance, clean and homely, adequate fire safety systems, positive feedback\nOverall rating: positive\nSummary: The text describes a positive inspection of a residential center, highlighting significant improvements, high compliance, and positive feedback from residents. The center has amenities and vehicles to support residents, and the premises are clean and homely. The overall sentiment of the residents is positive, indicating a good quality and safe service."))
+  (fix-malformed-string "Keywords: \n1. Quality of life\n2. Staff turnover \n3. Independence \n4. Improvements required \n5. Compatibility \n\nPhrases: \n1. \"Residents living in the centre had a good quality of life\"\n2. \"Significant turnover of staff in the centre\"\n3. \"Residents were happy living in the centre\"\n\nOverall rating: Positive \n\nSummary: The residents in the centre had a good quality of life and were happy with the care being provided. However, there were concerns regarding staff turnover and improvements needed in certain areas."))
 
 
+;; batch 30
+;; 10 28 95
+;; batch 29 - ok
+;; batch 28
+;; 45 87
+;; batch 27
+;; 29
+;; batch 26
+;; 53 80
+;; batch 25 - ok
+;; batch 24 -ok
+;; batch 23 -ok
+;; batch 22
+;; 45
+;; batch 21
+;; 24 99
+;; batch 20
+;; 27 53 65
+;; batch 19 - ok
+;; batch 13 - ok
+;; batch 17
+;; 10 55 65
+;; batch 15
+;; 80
+;; batch 18
+;; 94
+;; batch 14
+;; 45 65
 ;; batch 16
 ;; 4 71
 ;; batch 11 - ok
