@@ -288,11 +288,10 @@
 
 (comment
   (-> DS_pdf_info
-      (tc/group-by :year)
-      :data
-      last))
+      (tc/group-by :year)))
 
-(def pdf-info-DB (json/parse-string (slurp "outputs/pdf_info.json") true))
+;; TODO Delete this later
+(def pdf-info-DB-deprecated (json/parse-string (slurp "outputs/pdf_info.json") true))
 
 (defn aggregate-compliance-levels [DS]
   (-> DS
@@ -343,9 +342,9 @@
       
 
 ;; TODO consider adding as an output
-(def DS_pdf_info_agg_compliance (-> DS_pdf_info
-                                    aggregate-compliance-levels
-                                    sum-aggregate-compliance-levels))
+(defonce DS_pdf_info_agg_compliance (-> DS_pdf_info
+                                        aggregate-compliance-levels
+                                        sum-aggregate-compliance-levels))
 
 ;; OUTPUTS
 (comment

@@ -167,6 +167,33 @@
   (-> centre-by-region
       (tc/order-by :centres :desc))))
 
+(defn order-provider-by-centre-count [ds]
+  (->>
+   (-> ds
+       (tc/group-by :centre-id)
+       (tc/aggregate {:name-of-provider #(first (% :name-of-provider))})
+       :name-of-provider
+       frequencies)
+   (sort-by val)
+   reverse))
+
+(def provder-with-most-centres-per-region
+  (reduce (fn [result ds]
+            (let [[name centre-count] (first (order-provider-by-centre-count ds))]
+              (conj result
+                    (-> {}
+                        (assoc :region (first (:address-of-centre ds)))
+                        (assoc :provider name)
+                        (assoc :centre-count centre-count)))))
+          []
+          (-> dat/DS_pdf_info
+              (tc/group-by :address-of-centre)
+              :data)))
+
+;; **Provider with Most Centres by Region**
+(clerk/table (sort-by :region provder-with-most-centres-per-region))
+
+
 ;; #### Number of inspections per centre
 
 {::clerk/visibility {:code :hide :result :hide}}
@@ -469,7 +496,6 @@
 (clerk/row
  (clerk/vl
   {:$schema "https://vega.github.io/schema/vega-lite/v5.json",
-   :description "Maximum Occupancy (HIQA Register)",
    :data {:values [{:category "Congregated"  :value congregated-total-present}
                    {:category "Decongregated"  :value decongregated-total-present}]}
    :title "Number of Residents Present"
@@ -487,7 +513,6 @@
              :color {:value "white"}}}]})
  (clerk/vl
   {:$schema "https://vega.github.io/schema/vega-lite/v5.json"
-   :description "Maximum Occupancy (HIQA Register)"
    :data {:values [{:category "Congregated"  :value congregated-max}
                    {:category "Decongregated"  :value decongregated-max}]}
    :title "Maximum Occupancy (HIQA Register)"

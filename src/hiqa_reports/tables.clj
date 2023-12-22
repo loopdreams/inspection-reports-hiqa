@@ -164,7 +164,7 @@
 
 (comment
   (->
-   (make-regulation-table dat/pdf-info-DB 23 :area)
+   (make-regulation-table dat/pdf-info-DB-deprecated 23 :area)
    (tc/order-by [:not-compliant] [:desc])))
 
 

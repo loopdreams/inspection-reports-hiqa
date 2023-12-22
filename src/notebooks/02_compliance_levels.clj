@@ -1,16 +1,13 @@
-(ns notebooks.compliance-levels
+(ns notebooks.02-compliance-levels
   #:nextjournal.clerk{:visibility {:code :fold}, :toc true}
   (:require
-   [hiqa-reports.parsers-writers :as dat]
-   [hiqa-reports.tables :as tables]
-   [hiqa-reports.hiqa-register :refer [DS-hiqa-register]]
-   [nextjournal.clerk :as clerk]
-   [tablecloth.api :as tc]
    [aerial.hanami.common :as hc]
    [aerial.hanami.templates :as ht]
-   [java-time.api :as jt]))
-
-
+   [clojure.string :as str]
+   [hiqa-reports.parsers-writers :as dat]
+   [hiqa-reports.tables :as tables]
+   [nextjournal.clerk :as clerk]
+   [tablecloth.api :as tc]))
 
 ^{::clerk/visibility {:result :hide}}
 (swap! hc/_defaults assoc :BACKGROUND "white")
@@ -30,44 +27,19 @@
 ;;
 ;; The regulations headings are as follows:
 ;;
-;; ### Capacity and Capability
-;;  - Regulation 3  "Statement of purpose"
-;;  - Regulation 4  "Written policies and procedures"
-;;  - Regulation 14 "Person in charge"
-;;  - Regulation 15 "Staffing"
-;;  - Regulation 16 "Training and staff development"
-;;  - Regulation 19 "Directory of residents"
-;;  - Regulation 21 "Records"
-;;  - Regulation 22 "Insurance"
-;;  - Regulation 23 "Governance and management"
-;;  - Regulation 24 "Admissions and contract for the provision of services"
-;;  - Regulation 30 "Volunteers"
-;;  - Regulation 31 "Notification of incidets"
-;;  - Regulation 32 "Notifications of periods when person in charge is absent"
-;;  - Regulation 33 "Notifications of procedures and arrangements for periods when person in charge is absent"
-;;  - Regulation 34 "Complaints procedure"
-;; ### Quality and Safety
-;;  - Regulation 5 "Individualised assessment and personal plan"
-;;  - Regulation 6 "Healthcare"
-;;  - Regulation 7 "Positive behaviour support"
-;;  - Regulation 8 "Protection"
-;;  - Regulation 9 "Residents' rights"
-;;  - Regulation 10 "Communication"
-;;  - Regulation 11 "Visits"
-;;  - Regulation 12 "Personal possessions"
-;;  - Regulation 13 "General welfare and development"
-;;  - Regulation 17 "Premises"
-;;  - Regulation 18 "Food and nutrition"
-;;  - Regulation 20 "Information for residents"
-;;  - Regulation 25 "Temporary absence, transition and discharge of residents"
-;;  - Regulation 26 "Risk management procedures"
-;;  - Regulation 27 "Protections against infection"
-;;  - Regulation 28 "Fire precautions"
-;;  - Regulation 29 "Medicines and pharmaceutical services"
-;;
-;; [Additional info on regulations](https://www.hiqa.ie/sites/default/files/2018-02/Assessment-of-centres-DCD_Guidance.pdf)
-;;
 
+(clerk/md
+ (str "**Capacity and Capability**\n"
+      (str/join "\n"
+                (for [reg (sort (:capacity-and-capability dat/hiqa-regulations))]
+                  (str "- Regulation " (first reg) ": " (second reg))))))
+(clerk/md
+ (str "**Quality and Safety**\n"
+      (str/join "\n"
+                (for [reg (sort (:quality-and-safety dat/hiqa-regulations))]
+                  (str "- Regulation " (first reg) ": " (second reg))))))
+
+;; [Additional info on regulations](https://www.hiqa.ie/sites/default/files/2018-02/Assessment-of-centres-DCD_Guidance.pdf)
 
 ;; ### Inspections per Region
 
@@ -221,23 +193,228 @@
 ;;
 ;; Figures are average, and for indicative purposes only. They do not caputre the types of compliance and the nuances around the difference regulations.
 
+;;** % Fully Compliant by Provider** (Top 10)
 (clerk/table
- (-> tables/full-compliance-by-provider
-     (tc/full-join tables/non-compliance-by-provider :$group-name)
-     (tc/rename-columns {:$group-name :provider})
-     (tc/order-by :percent-fully-compliant :desc)))
+ (-> dat/DS_pdf_info_agg_compliance
+     (tc/group-by :name-of-provider)
+     (tc/aggregate {:total-regs-checked #(reduce + (% :total))
+                    :avg-percent-fully-compliant #(float (/ (reduce + (% :percent-fully-compliant))
+                                                            (count (% :percent-fully-compliant))))})
+     (tc/order-by :avg-percent-fully-compliant :desc)
+     (tc/select-rows (range 10))
+     (tc/rename-columns {:$group-name :provider})))
+
+;; **% Fully Compliant by Provider where there were > 200 Regulations Checked** (Top 10)
 
 (clerk/table
- (-> tables/full-compliance-by-area
-     (tc/full-join tables/non-compliance-by-area :$group-name)
-     (tc/rename-columns {:$group-name :area})
-     (tc/order-by :percent-fully-compliant :desc)))
+ (-> dat/DS_pdf_info_agg_compliance
+     (tc/group-by :name-of-provider)
+     (tc/aggregate {:total-regs-checked #(reduce + (% :total))
+                    :avg-percent-fully-compliant #(float (/ (reduce + (% :percent-fully-compliant))
+                                                            (count (% :percent-fully-compliant))))})
+     (tc/select-rows #(< 200 (% :total-regs-checked)))
+     (tc/order-by :avg-percent-fully-compliant :desc)
+     (tc/select-rows (range 10))
+     (tc/rename-columns {:$group-name :provider})))
+
+;; **% Fully Compliant by Area** (Top 10)
+(clerk/table
+ (-> dat/DS_pdf_info_agg_compliance
+     (tc/group-by :address-of-centre)
+     (tc/aggregate {:total-regs-checked #(reduce + (% :total))
+                    :avg-percent-fully-compliant #(float (/ (reduce + (% :percent-fully-compliant))
+                                                            (count (% :percent-fully-compliant))))})
+     (tc/order-by :avg-percent-fully-compliant :desc)
+     (tc/select-rows (range 10))
+     (tc/rename-columns {:$group-name :area})))
+
+
+{::clerk/visibility {:result :hide}}
+(def compliance-by-year-m
+  (reduce (fn [result ds]
+            (let [year (first (:year ds))
+                  full-c (reduce + (:num-compliant ds))
+                  non-c (reduce + (:num-notcompliant ds))
+                  subs-c (reduce + (:num-substantiallycompliant ds))]
+              (conj result
+                    (-> {}
+                        (assoc :year year)
+                        (assoc :type "Fully Compliant")
+                        (assoc :val full-c))
+                    (-> {}
+                        (assoc :year year)
+                        (assoc :type "Non Compliant")
+                        (assoc :val non-c))
+                    (-> {}
+                        (assoc :year year)
+                        (assoc :type "Substantially Compliant")
+                        (assoc :val subs-c)))))
+          []
+          (-> dat/DS_pdf_info_agg_compliance
+              (tc/group-by :year)
+              :data)))
+
+{::clerk/visibility {:result :show}}
+(clerk/vl
+ {:data {:values compliance-by-year-m}
+  :transform [{:calculate "if(datum.type === 'Fully Compliant', 0, if(datum.type === 'Substantially Compliant',1,2))"
+               :as "typeOrder"}]
+  :mark {:type "bar" :tooltip true}
+  :width 400
+  :height 400
+  :encoding {:y {:aggregate :sum :field :val
+                 :stack :normalize
+                 :title "Average %"}
+             :x {:field :year}
+             :color {:field :type
+                     :sort [ "Non Compliant" "Substantially Compliant" "Fully Compliant"]
+                     :title "Compliance Level"}
+             :order {:field :typeOrder}}})
+
+
+{::clerk/visibility {:result :hide}}
+(def compliance-by-region-m
+  (reduce (fn [result ds]
+            (let [address (first (:address-of-centre ds))
+                  full-c (reduce + (:num-compliant ds))
+                  non-c (reduce + (:num-notcompliant ds))
+                  subs-c (reduce + (:num-substantiallycompliant ds))]
+              (conj result
+                    (-> {}
+                        (assoc :address address)
+                        (assoc :type "Fully Compliant")
+                        (assoc :val full-c))
+                    (-> {}
+                        (assoc :address address)
+                        (assoc :type "Non Compliant")
+                        (assoc :val non-c))
+                    (-> {}
+                        (assoc :address address)
+                        (assoc :type "Substantially Compliant")
+                        (assoc :val subs-c)))))
+          []
+          (-> dat/DS_pdf_info_agg_compliance
+              (tc/group-by :address-of-centre)
+              :data)))
+
+(def total-regs-checked-by-region
+  (reduce (fn [result ds]
+            (conj result
+                  (-> {}
+                      (assoc :address-of-centre (first (:address-of-centre ds)))
+                      (assoc :total-regs-checked (reduce + (:total ds))))))
+          []
+          (-> dat/DS_pdf_info_agg_compliance
+              (tc/group-by :address-of-centre)
+              :data)))
+
+{::clerk/visibility {:result :show}}
+(clerk/row
+ (clerk/vl
+  {:data {:values compliance-by-region-m}
+   :transform [{:calculate "if(datum.type === 'Fully Compliant', 0, if(datum.type === 'Substantially Compliant',1,2))"
+                :as "typeOrder"}]
+   :mark {:type "bar" :tooltip true}
+   :title "Average Compliance Levels By Region"
+   :width 300
+   :height 700
+   :encoding {:x {:aggregate :sum :field :val
+                  :stack :normalize
+                  :title "Average %"}
+              :y {:field :address
+                  :sort "-x"}
+              :color {:field :type
+                      :sort [ "Non Compliant" "Substantially Compliant" "Fully Compliant"]
+                      :title "Compliance Level"}
+              :order {:field :typeOrder}}})
+
+
+ (clerk/vl
+  {:data {:values total-regs-checked-by-region}
+   :mark {:type "bar" :tooltip true}
+   :title "Total Regulations Checked"
+   :width 300
+   :height 700
+   :encoding {:x {:field :total-regs-checked
+                  :type :quantitative
+                  :title "Total"}
+              :y {:field :address-of-centre
+                  :title nil
+                  :sort "-x"}}}))
+
+
+(def first-20-providers-by-num-checked
+  (-> dat/DS_pdf_info_agg_compliance
+      (tc/group-by :name-of-provider)
+      (tc/aggregate {:total-checked #(reduce + (% :total))
+                     :num-compliant #(reduce + (% :num-compliant))
+                     :num-notcompliant #(reduce + (% :num-notcompliant))
+                     :num-substantiallycompliant #(reduce + (% :num-substantiallycompliant))})
+      (tc/order-by :total-checked :desc)
+      (tc/rename-columns {:$group-name :provider})
+      (tc/select-rows (range 20))))
+
+(def first-20-providers-by-num-checked-m
+  (reduce (fn [result entry]
+            (conj result
+                  (-> {}
+                      (assoc :provider (:provider entry))
+                      (assoc :type "Fully Compliant")
+                      (assoc :val (:num-compliant entry)))
+                  (-> {}
+                      (assoc :provider (:provider entry))
+                      (assoc :type "Non Compliant")
+                      (assoc :val (:num-notcompliant entry)))
+                  (-> {}
+                      (assoc :provider (:provider entry))
+                      (assoc :type "Substantially Compliant")
+                      (assoc :val (:num-substantiallycompliant entry)))
+                  (-> {}
+                      (assoc :provider (:provider entry))
+                      (assoc :type "Total checked")
+                      (assoc :val (:total-checked entry)))))
+          []
+          (->
+           first-20-providers-by-num-checked
+           (tc/rows :as-maps))))
+
+(clerk/row
+ (clerk/vl
+  {:data {:values (remove #(= "Total checked" (:type %)) first-20-providers-by-num-checked-m)}
+   :transform [{:calculate "if(datum.type === 'Fully Compliant', 0, if(datum.type === 'Substantially Compliant',1,2))"
+                :as "typeOrder"}]
+   :mark {:type "bar" :tooltip true}
+   :title "Average Compliance Levels By First 20 Providers"
+   :width 300
+   :height 600
+   :encoding {:x {:aggregate :sum :field :val
+                  :stack :normalize
+                  :title "Average %"}
+              :y {:field :provider
+                  :sort "-x"}
+              :color {:field :type
+                      :sort [ "Non Compliant" "Substantially Compliant" "Fully Compliant"]
+                      :title "Compliance Level"}
+              :order {:field :typeOrder}}})
+ (clerk/vl
+  {:data {:values (filter #(= "Total checked" (:type %)) first-20-providers-by-num-checked-m)}
+   :mark {:type "bar" :tooltip true}
+   :title "Total Regulations Checked"
+   :width 300
+   :height 600
+   :encoding {:x {:field :val
+                  :type :quantitative
+                  :title "Total"}
+              :y {:field :provider
+                  :title nil
+                  :axis nil
+                  :sort "-x"}}}))
 
 
 
 ;; ## Regulations by Provider and Area
 ;;
-;; I will look more closely below at two of the areas with a higher proportion of "Not compliant"
+;; I will look more closely below at two of the areas with a higher proportion of Not compliant"
 ;; judgements, **Governance and Mannagement** and **Fire Precautions**.
 ;;
 
@@ -306,25 +483,7 @@
 ;; exercise their responsibilities appropriately.
 ;;
 
-#_(clerk/table
-   (-> dat/pdf-info-DB
-       (tc/rows :as-maps)
-       (tables/make-regulation-table 23 :area)
-       (add-percent-noncompliant)))
-
-(def compliance-tbl-reg-23
-  (-> dat/DS_pdf_info
-      (dat/agg-compliance-levels-for-reg-by-group 23 :address-of-centre)))
-
-(clerk/table
- (-> compliance-tbl-reg-23
-     (tc/order-by :total :desc)
-     (tc/map-columns :percent-noncompliant [:percent-noncompliant]
-                     #(format "%.2f" %))
-     (tc/map-columns :percent-fully-compliant [:percent-fully-compliant]
-                     #(format "%.2f" %))))
-
-
+{::clerk/visibility {:result :hide}}
 (defn average-Dublin [entries val]
   (let [e-dub (remove #(= "Dublin" (:address-of-centre %)) entries)
         dubs (filter #(= "Dublin" (:address-of-centre %)) entries)
@@ -363,6 +522,31 @@
 
    :mark     "geoshape"
    :encoding {:color {:field type :type "quantitative"}}})
+
+
+(defn convert-%-to-string [DS]
+  (-> DS
+      (tc/map-columns :percent-noncompliant [:percent-noncompliant]
+                       #(format "%.2f" %))
+      (tc/map-columns :percent-fully-compliant [:percent-fully-compliant]
+                      #(format "%.2f" %))))
+
+
+
+(def compliance-tbl-reg-23
+  (-> dat/DS_pdf_info
+      (dat/agg-compliance-levels-for-reg-by-group 23 :address-of-centre)))
+
+
+{::clerk/visibility {:result :show}}
+(clerk/table
+ (-> compliance-tbl-reg-23
+     (tc/order-by :total :desc)
+     (tc/map-columns :percent-noncompliant [:percent-noncompliant]
+                     #(format "%.2f" %))
+     (tc/map-columns :percent-fully-compliant [:percent-fully-compliant]
+                     #(format "%.2f" %))))
+
 
 
 (clerk/row
@@ -430,22 +614,15 @@
   (-> dat/DS_pdf_info
       (dat/agg-compliance-levels-for-reg-by-group 23 :name-of-provider)))
 
-(defn convert-%-to-string [DS]
-  (-> DS
-      (tc/map-columns :percent-noncompliant [:percent-noncompliant]
-                       #(format "%.2f" %))
-      (tc/map-columns :percent-fully-compliant [:percent-fully-compliant]
-                      #(format "%.2f" %))))
-      
 
-;; #### First 10 Providers sorted by total inspections
+;; **Total Inspections** (Top 10)
 (clerk/table
  (-> compliance-tbl-reg-23-providers
      (tc/order-by :total :desc)
      (tc/select-rows (range 10))
      convert-%-to-string))
 
-;; #### First 10 Providers sorted by percentage fully compliant
+;; **% Fully Compliant** (Top 10)
 (clerk/table
  (-> compliance-tbl-reg-23-providers
      (tc/order-by :percent-fully-compliant :desc)
@@ -453,7 +630,7 @@
      convert-%-to-string))
 
 
-;; #### First 10 Providers with more than 50 inspections sorted by percentage fully compliant
+;; **% Fully Compliant with > 50 inspections** (Top 10)
 (clerk/table
  (-> compliance-tbl-reg-23-providers
      (tc/select-rows #(< 50 (% :total)))
@@ -461,7 +638,7 @@
      (tc/select-rows (range 10))
      convert-%-to-string))
 
-;; #### First 10 Providers sorted by percentage non compliant
+;; **% Non Compliant** (Top 10)
 
 (clerk/table
  (-> compliance-tbl-reg-23-providers
@@ -469,7 +646,7 @@
      (tc/select-rows (range 10))
      convert-%-to-string))
 
-;; #### First 10 Providers with more than 50 inspections sorted by percentage non compliant
+;; **% Non Compliant with > 50 inspections** (Top 10)
 
 (clerk/table
  (-> compliance-tbl-reg-23-providers
@@ -522,47 +699,124 @@
 ;; - staff are not trained in fire safety and or, if required for evacuation, resident-handling
 ;; - fire evacuation procedures are not prominently displayed throughout the building, as
 ;; appropriate.
-(clerk/table
- (->
-  (tables/make-regulation-table dat/pdf-info-DB 28 :area)
-  (add-percent-noncompliant)))
 
-
-;; (clerk/vl
-;;  (area-compliance-map "NonCompliance % Rgulation 28" "percent-noncompliant"
-;;                       (county-data
-;;                        (-> (tables/make-regulation-table dat/pdf-info-DB 28 :area)
-;;                            (add-percent-noncompliant)
-;;                            (tc/rows :as-maps)))
-;;                       400
-;;                       400))
-
-
-;; (clerk/row
-;;  (clerk/vl
-;;   (area-compliance-map "Number of NonCompliant Reg 28" "notcompliant"
-;;                        (county-data
-;;                         (-> (tables/make-regulation-table dat/pdf-info-DB 28 :area)
-;;                             (add-percent-noncompliant)
-;;                             (tc/rows :as-maps)))
-;;                        300
-;;                        300))
-
-
-;;  (clerk/vl
-;;   (area-compliance-map "Number of Compliant Reg 28" "compliant"
-;;                        (county-data
-;;                         (-> (tables/make-regulation-table dat/pdf-info-DB 28 :area)
-;;                             (add-percent-noncompliant)
-;;                             (tc/rows :as-maps)))
-;;                        300
-;;                        300)))
+(def compliance-tbl-reg-28
+  (-> dat/DS_pdf_info
+      (dat/agg-compliance-levels-for-reg-by-group 28 :address-of-centre)))
 
 
 (clerk/table
- (->
-  (tables/make-regulation-table dat/pdf-info-DB 28 :provider)
-  (add-percent-noncompliant)))
+ (-> compliance-tbl-reg-28
+     (tc/order-by :total :desc)
+     (tc/map-columns :percent-noncompliant [:percent-noncompliant]
+                     #(format "%.2f" %))
+     (tc/map-columns :percent-fully-compliant [:percent-fully-compliant]
+                     #(format "%.2f" %))))
 
 
 
+(clerk/row
+ (clerk/vl
+  (area-compliance-map "NonCompliance % Regulation 28" "percent-noncompliant"
+                       (county-data
+                        (-> compliance-tbl-reg-28
+                            (tc/select-columns [:address-of-centre :percent-noncompliant])
+                            (tc/rows :as-maps)))
+                       300
+                       300))
+ (clerk/table
+  (->
+   compliance-tbl-reg-28
+   (tc/select-columns [:address-of-centre :percent-noncompliant])
+   (tc/rows :as-maps)
+   county-data
+   tc/dataset
+   (tc/order-by :percent-noncompliant :desc)
+   (tc/map-columns :percent-noncompliant [:percent-noncompliant]
+                   #(format "%.2f" %))
+   (tc/select-rows (range 10))))
+ (clerk/table
+  (->
+   compliance-tbl-reg-28
+   (tc/select-columns [:address-of-centre :percent-noncompliant])
+   (tc/order-by :percent-noncompliant :desc)
+   (tc/map-columns :percent-noncompliant [:percent-noncompliant]
+                   #(format "%.2f" %))
+   (tc/select-rows (range 10)))))
+
+
+(clerk/row
+ (clerk/vl
+  (area-compliance-map "Number of NonCompliant Reg 28" "num-notcompliant"
+                       (county-data
+                        (-> compliance-tbl-reg-28
+                            (tc/select-columns [:address-of-centre :num-notcompliant])
+                            (tc/rows :as-maps)))
+                       300
+                       300))
+ (clerk/table
+  (-> compliance-tbl-reg-28
+      (tc/select-columns [:address-of-centre :num-notcompliant])
+      (tc/order-by :num-notcompliant :desc)
+      (tc/select-rows (range 10)))))
+
+(clerk/row
+ (clerk/vl
+  (area-compliance-map "Number of Compliant Reg 28" "num-compliant"
+                       (county-data
+                        (-> compliance-tbl-reg-28
+                            (tc/select-columns [:address-of-centre :num-compliant])
+                            (tc/rows :as-maps)))
+                       300
+                       300))
+ (clerk/table
+  (-> compliance-tbl-reg-28
+     (tc/select-columns [:address-of-centre :num-compliant])
+     (tc/order-by :num-compliant :desc)
+     (tc/select-rows (range 10)))))
+
+
+(def compliance-tbl-reg-28-providers
+  (-> dat/DS_pdf_info
+      (dat/agg-compliance-levels-for-reg-by-group 28 :name-of-provider)))
+
+
+;; **Total Inspections** (Top 10)
+(clerk/table
+ (-> compliance-tbl-reg-28-providers
+     (tc/order-by :total :desc)
+     (tc/select-rows (range 10))
+     convert-%-to-string))
+
+;; **% Fully Compliant** (Top 10)
+(clerk/table
+ (-> compliance-tbl-reg-28-providers
+     (tc/order-by :percent-fully-compliant :desc)
+     (tc/select-rows (range 10))
+     convert-%-to-string))
+
+
+;; **% Fully Compliant with > 50 inspections** (Top 10)
+(clerk/table
+ (-> compliance-tbl-reg-28-providers
+     (tc/select-rows #(< 50 (% :total)))
+     (tc/order-by :percent-fully-compliant :desc)
+     (tc/select-rows (range 10))
+     convert-%-to-string))
+
+;; **% Non Compliant** (Top 10)
+
+(clerk/table
+ (-> compliance-tbl-reg-28-providers
+     (tc/order-by :percent-noncompliant :desc)
+     (tc/select-rows (range 10))
+     convert-%-to-string))
+
+;; **% Non Compliant with > 50 inspections** (Top 10)
+
+(clerk/table
+ (-> compliance-tbl-reg-28-providers
+     (tc/select-rows #(< 50 (% :total)))
+     (tc/order-by :percent-noncompliant :desc)
+     (tc/select-rows (range 10))
+     convert-%-to-string))
