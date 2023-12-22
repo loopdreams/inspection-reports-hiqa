@@ -7,11 +7,9 @@
    [hiqa-reports.parsers-writers :as dat]
    [aerial.hanami.common :as hc]
    [aerial.hanami.templates :as ht]
-   [java-time.api :as jt]
-   [scicloj.noj.v1.vis.hanami.templates :as vht]
-   [scicloj.noj.v1.vis.hanami :as hanami]
-   [scicloj.noj.v1.stats :as stats]))
+   [java-time.api :as jt]))
 
+{::clerk/visibility {:result :hide}}
 (comment
   (clerk/serve! {:browse? true :watch-paths ["src/notebooks"]}))
 
@@ -44,7 +42,7 @@
 
 
 ;; ## General Information
-
+{::clerk/visibility {:result :show}}
 (clerk/md
  (str "- There were **"
       (-> dat/DS_pdf_info
@@ -62,7 +60,7 @@
       "** providers."))
 
 
-;; ### Number of Inspections
+;; **Number of Inspections**
 
 (clerk/vl
  (hc/xform
@@ -114,7 +112,7 @@
    :color {:field :year
            :type "nominal"}}})
 
-;; ### Number of Centres
+;; **Number of Centres**
 
 (clerk/md
  (str "- There were **"
@@ -126,7 +124,7 @@
       (-> dat/DS_pdf_info tc/row-count)
       "** reports.\n"))
 
-;; #### Number of Centres per region
+;; **Number of Centres per region**
 
 {::clerk/visibility {:result :hide}}
 (def DS_dublin_grouped
@@ -167,6 +165,7 @@
   (-> centre-by-region
       (tc/order-by :centres :desc))))
 
+{::clerk/visibility {:result :hide}}
 (defn order-provider-by-centre-count [ds]
   (->>
    (-> ds
@@ -190,13 +189,16 @@
               (tc/group-by :address-of-centre)
               :data)))
 
-;; **Provider with Most Centres by Region**
-(clerk/table (sort-by :region provder-with-most-centres-per-region))
+;; **Provider with Most Centres by Region (Dublin)**
+{::clerk/visibility {:result :show}}
+(clerk/table (sort-by :region (filter #(re-find #"Dublin" (:region %)) provder-with-most-centres-per-region)))
 
+;; **Provider with Most Centres by Region (Outside Dublin)**
+(clerk/table (sort-by :region (remove #(re-find #"Dublin" (:region %)) provder-with-most-centres-per-region)))
 
-;; #### Number of inspections per centre
+;; **Number of inspections per centre**
 
-{::clerk/visibility {:code :hide :result :hide}}
+{::clerk/visibility {:result :hide}}
 (def inspections-per-centre
   (->>
    (-> dat/DS_pdf_info
@@ -222,7 +224,7 @@
   :rows
   inspections-per-centre})
 
-;; #### Number of centres inspected compared to HIQA register
+;; **Number of centres inspected compared to HIQA register**
 
 (clerk/md
  (let [num-inspected (-> dat/DS_pdf_info
@@ -242,7 +244,7 @@
 
 
 
-;; ### Number of Providers
+;; **Number of Providers**
 
 (clerk/md
  (let [total-providers
@@ -253,8 +255,8 @@
    (str "There were a total of **"
         total-providers "** across the reports.")))
 
-;; #### Providers by Region
-{::clerk/visibility {:result :hide :code :hide}}
+;; **Providers by Region**
+{::clerk/visibility {:result :hide}}
 (def providers-by-region
   (-> DS_dublin_grouped
       (tc/group-by :area)
@@ -285,7 +287,7 @@
       (tc/order-by :providers :desc))))
 
 
-;; #### Top 10 Providers by Number of Centres
+;; **Top 10 Providers by Number of Centres**
 {::clerk/visibility {:result :hide}}
 (def centres-per-provider
   (-> dat/DS_pdf_info
@@ -313,7 +315,7 @@
      (tc/select-rows (range 10))))
 
 
-;; #### Top 10 Providers by Inspections per Centre
+;; **Top 10 Providers by Inspections per Centre**
 
 (clerk/table
  (-> inspections-and-centres-provider
@@ -321,16 +323,7 @@
      (tc/select-rows (range 10))))
 
 
-
-;; TODO Failure here probably due to dependency conflict
-(comment
-  (hanami/linear-regression-plot inspections-and-centres-provider :centres :inspections {})
-
-  (-> inspections-and-centres-provider
-      (stats/add-predictions :centres [:inspections]
-                             {:model-type :smile.regression/ordinary-least-square})))
-
-;; ### Inspection Types
+;; **Inspection Types**
 
 (clerk/vl
  {:$schema "https://vega.github.io/schema/vega-lite/v5.json"
@@ -363,38 +356,38 @@
        second))
 
 {::clerk/visibility {:result :show}}
-(clerk/vl
- (hc/xform
-  ht/bar-chart
-  :DATA
-  (-> dat/DS_pdf_info
-      (tc/drop-missing :number-of-residents-present)
-      (tc/group-by :centre-id)
-      (tc/aggregate {:no-residents-most-recent
-                     #(most-recent-resident-no
-                       (% :date)
-                       (% :number-of-residents-present))})
-      (tc/group-by :no-residents-most-recent)
-      (tc/aggregate {:centres #(count (% :$group-name))})
-      (tc/rename-columns {:$group-name :number-of-residents-present})
-      (tc/rows :as-maps))
-  :TITLE "Number of Residents Present at Time of Inspection"
-  :X :number-of-residents-present :XTYPE :nominal
-  :Y :centres :YTPE :quantitative))
+(clerk/col
+ (clerk/vl
+  (hc/xform
+   ht/bar-chart
+   :DATA
+   (-> dat/DS_pdf_info
+       (tc/drop-missing :number-of-residents-present)
+       (tc/group-by :centre-id)
+       (tc/aggregate {:no-residents-most-recent
+                      #(most-recent-resident-no
+                        (% :date)
+                        (% :number-of-residents-present))})
+       (tc/group-by :no-residents-most-recent)
+       (tc/aggregate {:centres #(count (% :$group-name))})
+       (tc/rename-columns {:$group-name :number-of-residents-present})
+       (tc/rows :as-maps))
+   :TITLE "Number of Residents Present at Time of Inspection"
+   :X :number-of-residents-present :XTYPE :nominal
+   :Y :centres :YTPE :quantitative :YSCALE {:domain [0 400]}))
 
-
-(clerk/vl
- (hc/xform
-  ht/bar-chart
-  :DATA
-  (-> DS-hiqa-register
-      (tc/group-by :Maximum_Occupancy)
-      (tc/aggregate {:number-of-centres #(count (% :Centre_ID))})
-      (tc/rename-columns {:$group-name :maximum-occupancy})
-      (tc/rows :as-maps))
-  :TITLE "Maximum Occupancy - HIQA Register"
-  :X :maximum-occupancy :XTYPE :nominal
-  :Y :number-of-centres))
+ (clerk/vl
+  (hc/xform
+   ht/bar-chart
+   :DATA
+   (-> DS-hiqa-register
+       (tc/group-by :Maximum_Occupancy)
+       (tc/aggregate {:number-of-centres #(count (% :Centre_ID))})
+       (tc/rename-columns {:$group-name :maximum-occupancy})
+       (tc/rows :as-maps))
+   :TITLE "Maximum Occupancy - HIQA Register"
+   :X :maximum-occupancy :XTYPE :nominal 
+   :Y :number-of-centres)))
 
 ;; Below is a table comparing the maximum occupancy for a centre as recorded in the HIQA register vs.
 ;; the number of residents present at the date of the last inspection. There are obviously a lot of
@@ -402,6 +395,15 @@
 ;; of the inspection is highly dependant on a lot of other factors not captured here.
 ;;
 ;; TODO Check these again
+;;
+(clerk/md
+ (str "As a caveat, the number of reports where 'number of residents present' failed to parse was: **"
+      (->> (:number-of-residents-present dat/DS_pdf_info)
+           (filter nil?)
+           count)
+      "**."))
+
+{::clerk/visibility {:result :hide}}
 (def joined-occupancy
   (-> dat/DS_pdf_info
         (tc/drop-missing :number-of-residents-present)
@@ -419,59 +421,16 @@
                          [:Maximum_Occupancy :no-residents-most-recent]
                          #(- %1 %2))))
 
-(clerk/table joined-occupancy)
-
-(clerk/md
- (str
-  "- The **total** maximum occupancy across all centres on the HIQA register is: **"
-  (->> (:Maximum_Occupancy DS-hiqa-register)
-       (reduce +))
-  "**"
-  "\n"
-  "- The total maximum occupancy across centres where inspections also occured is: **"
-  (->> (:Maximum_Occupancy joined-occupancy)
-       (reduce +))
-  "**"
-  "\n"
-  "- The total 'residents present' at time of inspection is: **"
-  (->> (:no-residents-most-recent joined-occupancy)
-       (reduce +))
-  "**"
-  "\n"
-  "- The difference between 'max' occupancy of centres inspected and 'residents present' is: **"
-  (->> (:difference joined-occupancy)
-       (reduce +))
-  "**"
-  "\n"
-  "- The difference between 'max occupancy' and 'residents present' for **congregated settings** is: **"
-  (->> (:difference
-        (-> joined-occupancy
-            (tc/select-rows #(< 9 (% :Maximum_Occupancy)))))
-       (reduce +))
-  "**"))
-
-;; Surpisingly, there were also a number of centres with 'more' residents present than was listed as 'maximum occupancy'.
-;;
-(clerk/table
- (-> joined-occupancy
-     (tc/select-rows #(> 0 (% :difference)))
-     (tc/order-by :difference)))
-
-;; After looking up the reports for the first few entries here, it seems that the HIQA register might be out of date.
-
-;; ### 'Congregated Settings' Based on Number of Residents present at time of inspection
-
-{::clerk/visibility {:result :hide}}
 (defn totals-present [fn no]
   (reduce +
           (-> dat/DS_pdf_info
               (tc/drop-missing :number-of-residents-present)
-              (tc/select-rows #(fn no (% :number-of-residents-present)))
               (tc/group-by :centre-id)
               (tc/aggregate {:no-residents-most-recent
                              #(most-recent-resident-no
                                (% :date)
                                (% :number-of-residents-present))})
+              (tc/select-rows #(fn no (% :no-residents-most-recent)))
               :no-residents-most-recent)))
 
 (defn max-occupancy-totals [fn no]
@@ -491,6 +450,45 @@
 
 (def decongregated-max
   (max-occupancy-totals > 10))
+(-> dat/DS_pdf_info)
+
+{::clerk/visibility {:result :show}}
+(clerk/md
+ (str
+  "- The **total** maximum occupancy across all centres on the HIQA register was: **"
+  (->> (:Maximum_Occupancy DS-hiqa-register)
+       (reduce +))
+  "**"
+  "\n"
+  "- The total maximum occupancy across centres where inspections also occured was: **"
+  (->> (:Maximum_Occupancy joined-occupancy)
+       (reduce +))
+  "**"
+  "\n"
+  "- The total 'residents present' at time of inspection was: **"
+  (->> (:no-residents-most-recent joined-occupancy)
+       (reduce +))
+  "**"
+  "\n"
+  "- The difference between 'max' occupancy of centres inspected and 'residents present' was: **"
+  (->> (:difference joined-occupancy)
+       (reduce +))
+  "**"
+  "\n"
+  "- The difference between 'max occupancy' and 'residents present' for **congregated settings** was: **"
+  (- congregated-max congregated-total-present)
+  "**"
+  "\n"
+  "- The number of centres where 'max occupancy' was greater than 10, but which had less than 10 residents present at time of inspection was: **"
+  (-> joined-occupancy
+      (tc/select-rows #(< 9 (% :Maximum_Occupancy)))
+      (tc/select-rows #(> 10 (% :no-residents-most-recent)))
+      (tc/row-count))
+  "**"))
+
+
+
+;; **'Congregated Settings' Based on Number of Residents present at time of inspection**
 
 {::clerk/visibility {:result :show}}
 (clerk/row
@@ -528,3 +526,11 @@
             :encoding
             {:text {:field :value :type :quantitative}
              :color {:value "white"}}}]}))
+;; Surpisingly, there were also a number of centres with 'more' residents present than was listed as 'maximum occupancy'.
+;;
+(clerk/table
+ (-> joined-occupancy
+     (tc/select-rows #(> 0 (% :difference)))
+     (tc/order-by :difference)))
+
+;; After looking up the reports for the first few entries here, the inconsistency may lie with the HIQA register.
