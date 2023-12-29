@@ -60,6 +60,7 @@
       "** providers."))
 
 
+
 ;; **Number of Inspections**
 
 (clerk/vl
@@ -95,6 +96,25 @@
               (for [month (keys (sorted-m year))]
                 {:year year :month month :value ((sorted-m year) month)})))))
 
+(def avg-per-month
+  (reduce (fn [result ds]
+            (let [year (first (:year ds))
+                  m-counts (-> ds
+                               (tc/map-columns :month [:date] #(jt/as % :month-of-year))
+                               (tc/group-by :month)
+                               (tc/aggregate {:count #(tc/row-count %)})
+                               :count)
+                  tot (reduce + m-counts)
+                  avg (float (/ tot (count m-counts)))]
+              (conj result
+                    (-> {}
+                        (assoc :year year)
+                        (assoc :monthly-average avg)))))
+          []
+          (-> dat/DS_pdf_info
+              (tc/group-by :year)
+              :data)))
+
 {::clerk/visibility {:result :show}}
 (clerk/vl
  {:$schema "https://vega.github.io/schema/vega-lite/v5.json"
@@ -111,6 +131,9 @@
        :title "Number of Inspections"}
    :color {:field :year
            :type "nominal"}}})
+
+;; **Average Inspections per Month**
+(clerk/table (sort-by :year avg-per-month))
 
 ;; **Number of Centres**
 
@@ -136,7 +159,7 @@
                             "Dublin"
                             v))))))
 
-(def ireland-map (slurp "resources/irish-counties-segmentized.topojson"))
+(def ireland-map (slurp "resources/datasets/imported/irish-counties-segmentized.topojson"))
 
 (def centre-by-region (-> DS_dublin_grouped
                           (tc/group-by :area)

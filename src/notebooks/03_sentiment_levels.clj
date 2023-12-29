@@ -17,6 +17,34 @@
   (-> dat/DS_pdf_info
       (tc/full-join DS_sentiment :report-id)))
 
+(def DS_joined_compliance
+  (-> dat/DS_pdf_info_agg_compliance
+      (tc/full-join DS_sentiment :report-id)))
+
+(comment
+  (filter (fn [[idx v]]
+            (> v 5))
+          (map-indexed vector
+                       (map (comp count read-string)
+                            (-> DS_sentiment
+                                :phrases))))
+  (filter #(nil? (second %)) (map-indexed vector (-> DS_sentiment :phrases)))
+  (remove #(some #{(second %)} ["positive" "negative" "neutral"])
+          (map-indexed vector (-> DS_sentiment
+                                  :rating)))
+
+  (count (-> DS_sentiment :rating))
+  (count (map clojure.edn/read-string (-> DS_sentiment
+                                          :rating)))
+  (filter #(not= 5 (second %)) (map-indexed vector (map (comp count clojure.edn/read-string) (-> DS_sentiment :keywords))))
+
+
+  (nth (-> DS_sentiment
+           :report-id)
+       118))
+
+
+
 ;; # Sentiment Levels
 
 ;; Aggregate 'sentiment' levels were obtained by passing the text contained under the section **What residents told us and what inspectors observed** to `GPT-3.5` for evaluation.
@@ -54,7 +82,7 @@
         "\n"
         "- The average word count for an entry was: **"
         (format "%.2f" avg-wc)
-        "**")))
+        "** words.")))
 
 ;; ## Rating
 ;;
@@ -66,35 +94,6 @@
   (float (/ (count (filter #(= % type) row))
             (count row))))
 
-{::clerk/visibility {:result :show}}
-(clerk/vl
- {:$schema "https://vega.github.io/schema/vega-lite/v5.json"
-  :data {:values [{:category "Positive" :value (->> (:rating DS_sentiment)
-                                                    (filter #(= (str %) "positive"))
-                                                    count)}
-                  {:category "Neutral"  :value (->> (:rating DS_sentiment)
-                                                    (filter #(= (str %) "neutral"))
-                                                    count)}
-                  {:category "Negative" :value (->> (:rating DS_sentiment)
-                                                    (filter #(= (str %) "negative"))
-                                                    count)}]}
-  :title "Overall Sentiment"
-  :height 400
-  :width 400
-  :encoding {:theta {:field :value, :type "quantitative" :stack "normalize"}
-             :color {:field :category, :type "nominal"}}
-  :layer [{:mark
-           {:type "arc" :outerRadius 110 :tooltip true}}
-          {:mark
-           {:type "text"
-            :radius 130
-            :fontSize 18
-            :fontWeight "bold"}
-           :encoding
-           {:text {:field :value :type :quantitative}
-            :color {:value "black"}}}]})
-
-{::clerk/visibility {:result :hide}}
 (def rating-by-year-m
   (reduce (fn [result ds]
             (let [rating (:rating ds)
@@ -120,16 +119,82 @@
               (tc/group-by :year)
               :data)))
 
+(def dublin-positive-rating
+  (let [dub-ratings (-> DS_joined
+                        (tc/select-rows #(re-find #"Dublin" (% :address-of-centre)))
+                        :rating)
+        num-positive (count (filter #(= "positive" %) dub-ratings))
+        percent-pos (float (/ num-positive (count dub-ratings)))]
+    {:area "Dublin" :percentage-positive percent-pos}))
+
+(def outside-dub-positive-ratings
+  (-> DS_joined
+      (tc/drop-rows #(re-find #"Dublin" (% :address-of-centre)))
+      (tc/group-by :address-of-centre)
+      (tc/aggregate {:percentage-positive #(float (/
+                                                   (count (filter (fn [r] (= "positive" r)) (% :rating)))
+                                                   (count (% :rating))))})
+      (tc/rename-columns {:$group-name :area})
+      (tc/rows :as-maps)))
+
+(def percentage-positive-regions-m (conj outside-dub-positive-ratings dublin-positive-rating))
+
+(def ireland-map (slurp "resources/datasets/imported/irish-counties-segmentized.topojson"))
+
 {::clerk/visibility {:result :show}}
-(clerk/vl
- {:data {:values rating-by-year-m}
-  :mark {:type "bar" :tooltip true}
-  :width 400
-  :height 400
-  :encoding {:y {:aggregate :sum :field :count
-                 :stack :normalize}
-             :x {:field :year}
-             :color {:field :type}}})
+(clerk/col
+ (clerk/vl
+  {:$schema "https://vega.github.io/schema/vega-lite/v5.json"
+   :data {:values [{:category "Positive" :value (->> (:rating DS_sentiment)
+                                                     (filter #(= (str %) "positive"))
+                                                     count)}
+                   {:category "Neutral"  :value (->> (:rating DS_sentiment)
+                                                     (filter #(= (str %) "neutral"))
+                                                     count)}
+                   {:category "Negative" :value (->> (:rating DS_sentiment)
+                                                     (filter #(= (str %) "negative"))
+                                                     count)}]}
+   :title "Overall Sentiment"
+   :height 400
+   :width 400
+   :encoding {:theta {:field :value, :type "quantitative" :stack "normalize"}
+              :color {:field :category, :type "nominal"}}
+   :layer [{:mark
+            {:type "arc" :outerRadius 110 :tooltip true}}
+           {:mark
+            {:type "text"
+             :radius 130
+             :fontSize 18
+             :fontWeight "bold"}
+            :encoding
+            {:text {:field :value :type :quantitative}
+             :color {:value "black"}}}]})
+
+ (clerk/vl
+  {:data {:values rating-by-year-m}
+   :mark {:type "bar" :tooltip true}
+   :width 400
+   :height 400
+   :encoding {:y {:aggregate :sum :field :count
+                  :stack :normalize
+                  :title "%"}
+              :x {:field :year}
+              :color {:field :type}}})
+
+ (clerk/vl
+  {:$schema   "https://vega.github.io/schema/vega-lite/v5.json"
+   :data      {:format {:feature "counties" :type "topojson"}
+               :values ireland-map}
+   :title     "% Positive by Area"
+   :width 400
+   :height 400
+   :transform [{:lookup "id"
+                :from   {:data   {:values percentage-positive-regions-m}
+                         :fields ["percentage-positive"]
+                         :key    "area"}}]
+
+   :mark     "geoshape"
+   :encoding {:color {:field "percentage-positive" :type "quantitative"}}}))
 
 ;; ## Keywords
 
@@ -147,6 +212,18 @@
    (remove #(= (first %) "RESIDENTS"))
    (sort-by val)
    reverse))
+
+(defn sort-words-all-rating [ds type]
+  (->> (ds type)
+       (map edn/read-string)
+       flatten
+       (map str/upper-case)
+       frequencies
+       (remove #(= (first %) "INSPECTION"))
+       (remove #(= (first %) "RESIDENTS"))
+       (sort-by val)
+       reverse))
+       
 
 {::clerk/visibility {:result :show}}
 (clerk/md
@@ -273,44 +350,64 @@
           (sort-words DS_sentiment "negative" :keywords)))
 
 {::clerk/visibility {:result :show}}
-(clerk/vl
- (word-cloud-2 negative-keywords-wc))
+#_(clerk/vl
+   (word-cloud-2 negative-keywords-wc))
 
+;; ## Phrases
 {::clerk/visibility {:result :hide}}
 (def postive-phrases-wc
   (reduce #(conj %1 (-> {}
                         (assoc :text (first %2))
                         (assoc "size" (second %2))))
           []
-          (sort-words DS_sentiment "positive" :phrases)))
+          (sort-words-all-rating DS_sentiment :phrases)))
 
 {::clerk/visibility {:result :show}}
-(clerk/vl
- (word-cloud-2 postive-phrases-wc))
+#_(clerk/vl
+   (word-cloud-2 postive-phrases-wc))
         
       
-    
-  
- 
 
+;; ## Example Summaries for Three Random Entries
 
-(comment
-  (reverse
-   (sort-by val
-            (frequencies
-             (flatten
-              (map edn/read-string
-                   (-> DS_sentiment
-                       (tc/select-rows #(= "positive" (% :rating)))
-                       :phrases)))))))
+{::clerk/visibility {:result :hide}}
+(def summary-info-list
+  [["Provider: " :name-of-provider]
+   ["Area: " :address-of-centre]
+   ["Inspection Type: " :type-of-inspection]
+   ["Number of Residents Present: " :number-of-residents-present]
+   ["Number of Compliant Regulations: " :num-compliant]
+   ["Number of Substantially Compliant Regulations: " :num-substantiallycompliant]
+   ["Number of Non Compliant Regulations: " :num-notcompliant]
+   ["GPT Rating: " :rating]])
 
-(comment
-  (count
-   (reverse
-    (sort-by val
-             (frequencies
-              (flatten
-               (map edn/read-string
-                    (-> DS_sentiment
-                        (tc/select-rows #(= "positive" (% :rating)))
-                        :keywords))))))))
+(defn random-summary-page [number]
+  (let [target    (nth (:report-id DS_joined_compliance) number)
+        data      (-> DS_joined_compliance (tc/select-rows #(= target (% :report-id))))
+        centre-id (first (:centre-id data))
+        summary   (first (:summary data))
+        URL       (first (:report-URL data))
+        keywords  (first (:keywords data))
+        phrases   (first (:phrases data))
+        date      (first (:date data))]
+    [:div
+     [:h3 (str "Inspection at centre " centre-id " on " (str date))]
+     [:em summary]
+     [:hr]
+     (when URL
+       [:a {:href URL} "Full Report"])
+     [:ul
+      (for [li   summary-info-list
+            :let [[title kw] li
+                  info (first (kw data))]]
+        [:li [:b title] (str info)])]
+     [:b "Keywords and Key Phrases:"]
+     [:ul (for [kw (concat (read-string keywords) (read-string phrases))]
+            [:li kw])]]))
+
+(def random-entries (take 3 (repeatedly #(rand-int (count (:report-id DS_joined_compliance))))))
+
+{::clerk/visibility {:result :show}}
+(clerk/html (random-summary-page (first random-entries)))
+(clerk/html (random-summary-page (second random-entries)))
+(clerk/html (random-summary-page (last random-entries)))

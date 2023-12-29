@@ -1,5 +1,6 @@
 (ns hiqa-reports.parsers-writers
   (:require
+   [hiqa-reports.pdf-get :refer [report-list]]
    [cheshire.core :as json]
    [clojure.java.io :as io]
    [clojure.string :as str]
@@ -11,6 +12,7 @@
 
 (def all-reports-pdfs (rest (file-seq reports-directory)))
 
+(def json-out-dir "resources/json/")
 (def full-json-out "resources/json/pdf_data_full.json")
 (def full-csv-out "resources/datasets/created/pdf_data_full.csv")
 
@@ -104,6 +106,7 @@
   (when date
     (str centre-id "-" (jt/format "yyyyMMdd" date))))
 
+;; TODO Further verification on this - test to see if all SJOGs are counted now
 (defn- parse-frontmatter [pdf-text]
   (let [page-1 (first (rest (str/split pdf-text #"Page")))
         info   (->> frontmatter-fields
@@ -113,8 +116,28 @@
                     reverse
                     (take (count frontmatter-fields))
                     reverse
-                    (map str/trim))]
-    (zipmap frontmatter-fields-keywords info)))
+                    (map str/trim))
+        data (zipmap frontmatter-fields-keywords info)]
+    (if (= (:name-of-provider data) "St John of God Community Services Company Limited By Guarantee")
+      (assoc data :name-of-provider "St John of God Community Services CLG")
+      data)))
+
+
+(comment
+  (time
+   (map (comp parse-frontmatter text/extract) all-reports-pdfs)))
+
+#_(defn- parse-frontmatter [pdf-text]
+    (let [page-1 (first (rest (str/split pdf-text #"Page")))
+          info   (->> frontmatter-fields
+                      (str/join "|")
+                      re-pattern
+                      (str/split (str/replace page-1 #"\n" ""))
+                      reverse
+                      (take (count frontmatter-fields))
+                      reverse
+                      (map str/trim))]
+      (zipmap frontmatter-fields-keywords info)))
 
 (defn- number-of-residents-present [pdf-text]
   (let [[_ no-of-residents] (str/split pdf-text
@@ -131,9 +154,9 @@
                    #"What residents told us and what inspectors observed \n|Capacity and capability \n")) #"\n" ""))
      #"  Page \d+ of \d+  " ""))
 
+;; Updated this function because two reports (e.g., 5686/2021) contained an alternative
+;; title for the observations section 'Views of the people who use the service'.
 (defn- what-residents-told-us
-  "Updated this function because two reports (e.g., 5686/2021) contained an alternative
-  title for the observations section 'Views of the people who use the service'."
   [pdf-text]
   (-> pdf-text
       (str/split #"What residents told us and what inspectors observed \n|Views of people who use the service|Capacity and capability \n")
@@ -142,7 +165,7 @@
       str/trim
       (str/replace #"  Page \d+ of \d+  " "")))
 
-(defn test-for-alt-observation-text [pdf-file]
+(defn- test-for-alt-observation-text [pdf-file]
   (let [text (text/extract pdf-file)]
     (when (re-find #"Views of people who use the service" text)
       pdf-file)))
@@ -150,7 +173,6 @@
 (comment
   (remove nil? (map test-for-alt-observation-text all-reports-pdfs)))
 
-;; 
   ;; 0. inspection_reports/5686-brookfield-17-february-2021.pdf
   ;; 1. inspection_reports/5785-liffey-3-11-march-2021.pdf
   
@@ -215,6 +237,38 @@
   (map (comp parse-compliance-table-alt text/extract) (take 5 all-reports-pdfs)))
 
 
+(defn- pdf-name-matcher [date centre-id]
+  (let [date-str (if (re-find #"and|&" date)
+                   (str/trim (first (str/split  date #"and |& ")))
+                   date)
+        date-of-inspection (str/replace (str/lower-case date-str)
+                                        #" "
+                                        "[-_]")
+        date-of-inspection (if (= (first date-of-inspection) \0)
+                             (apply str (rest date-of-inspection))
+                             date-of-inspection)
+        matcher (re-pattern (str centre-id ".*" date-of-inspection))]
+    matcher))
+
+(defn- add-url-DS [ds url-list]
+  (-> ds
+      (tc/map-columns :report-URL
+                      ["date-of-inspection" "centre-id"]
+                      (fn [d id]
+                        (first
+                         (filter #(re-find (pdf-name-matcher d id) %)
+                                 url-list))))))
+
+(comment
+  (-> DS_pdf_info
+      (tc/select-rows 2974))
+
+  (filter #(nil? (second %))
+          (map-indexed vector
+                       (:report-URL
+                        (add-url-DS DS_pdf_info report-list)))))
+
+
 (defn- process-pdf
   "Heirarchical version of output. For 'flat' version see 'process-pdf-alt'"
   [pdf-file]
@@ -254,11 +308,24 @@
       :date                        (when date (jt/format "YYYY-MM-dd" (jt/zoned-date-time date "UTC")))})))
 
 
+
 ;; File Outputs
 
 (defn process-pdfs-to-json! [process-fn out]
-  (let [data (pmap process-fn all-reports-pdfs)]
+  (let [data (map process-fn all-reports-pdfs)]
     (json/generate-stream data (io/writer out))))
+
+#_(defn process-pdfs-to-json! [process-fn out]
+    (pmap process-fn all-reports-pdfs))
+
+#_(defn process-pdfs-to-json! [process-fn]
+    (let [chunks (partition-all 100 all-reports-pdfs)]
+      (for [i (range 0 (count chunks))
+            :let [data (pmap process-fn (nth chunks i))
+                  file (str json-out-dir "chunk_" i ".json")]]
+        (json/generate-stream data (io/writer file)))))
+
+
 
 ;; TODO Come back and look into the single nil value in centre-id (dropped in the fn below)
 (defn full-csv-write! []
@@ -273,6 +340,7 @@
                            "type-of-inspection"
                            "number-of-residents-present"])
       (tc/drop-missing "centre-id")
+      (add-url-DS report-list)
       (tc/write! full-csv-out)))
 
 (defn reg-map-cols
@@ -289,6 +357,12 @@
 (comment
   (-> DS_pdf_info
       (tc/group-by :year)))
+
+
+  
+
+
+
 
 ;; TODO Delete this later
 (def pdf-info-DB-deprecated (json/parse-string (slurp "outputs/pdf_info.json") true))
@@ -342,9 +416,9 @@
       
 
 ;; TODO consider adding as an output
-(defonce DS_pdf_info_agg_compliance (-> DS_pdf_info
-                                        aggregate-compliance-levels
-                                        sum-aggregate-compliance-levels))
+(def DS_pdf_info_agg_compliance (-> DS_pdf_info
+                                    aggregate-compliance-levels
+                                    sum-aggregate-compliance-levels))
 
 ;; OUTPUTS
 (comment
@@ -389,4 +463,3 @@
       (tc/print-dataset {:print-line-policy :repl})))
 
 
-;;; *** End of parsing/generation functions

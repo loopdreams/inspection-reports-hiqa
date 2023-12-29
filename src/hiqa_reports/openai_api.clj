@@ -11,7 +11,7 @@
 (def auth (:auth (edn/read-string (slurp "creds.edn"))))
 (def responses-dir "GPT_responses/")
 
-(def processed-reports-DB-f-out "outputs/GPT_responses.csv")
+(def processed-reports-DB-f-out "resources/datasets/created/GPT_responses.csv")
 
 (def prompt-parts
   ["Summarize the following text into 5 keywords reflecting the sentiment of the residents. Do not include the word 'residents' as a keyword."

@@ -6,6 +6,7 @@
          clojure.java-time/clojure.java-time {:mvn/version "1.4.2"}
          cheshire/cheshire {:mvn/version "5.12.0"}
          net.clojars.wkok/openai-clojure {:mvn/version "0.14.0"}
-         aerial.hanami/aerial.hanami {:mvn/version "0.19.0"}}
+         aerial.hanami/aerial.hanami {:mvn/version "0.19.0"}
+         org.scicloj/clay {:mvn/version "2-alpha53"}}
  :aliases
  {:neil {:project {:name hiqa-reports/hiqa-reports}}}}

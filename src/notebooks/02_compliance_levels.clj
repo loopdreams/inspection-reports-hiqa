@@ -193,7 +193,7 @@
 ;;
 ;; Figures are average, and for indicative purposes only. They do not caputre the types of compliance and the nuances around the difference regulations.
 
-;;** % Fully Compliant by Provider** (Top 10)
+;;**% Fully Compliant by Provider** (Top 10)
 (clerk/table
  (-> dat/DS_pdf_info_agg_compliance
      (tc/group-by :name-of-provider)
