@@ -338,8 +338,8 @@
                :padding       1}]}]})
 
 {::clerk/visibility {:result :show}}
-(clerk/vl
- (word-cloud-2 (take 200 positive-keywords-wc)))
+#_(clerk/vl
+   (word-cloud-2 (take 200 positive-keywords-wc)))
 
 {::clerk/visibility {:result :hide}}
 (def negative-keywords-wc

@@ -47,7 +47,7 @@
     23 "Governance and management"
     24 "Admissions and contract for the provision of services"
     30 "Volunteers"
-    31 "Notification of incidets"
+    31 "Notification of incidents"
     32 "Notifications of periods when person in charge is absent"
     33 "Notifications of procedures and arrangements for periods when person in charge is absent"
     34 "Complaints procedure"}

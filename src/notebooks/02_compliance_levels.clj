@@ -41,66 +41,6 @@
 
 ;; [Additional info on regulations](https://www.hiqa.ie/sites/default/files/2018-02/Assessment-of-centres-DCD_Guidance.pdf)
 
-;; ### Inspections per Region
-
-{::clerk/visibility {:result :hide}}
-(def DS_dublin_grouped
-  (-> dat/DS_pdf_info
-      (tc/map-columns :area [:address-of-centre]
-                      (fn [v]
-                        (when v
-                          (if (re-find #"Dublin" v)
-                            "Dublin"
-                            v))))))
-
-
-(defn regional-tbl [k name]
-  (-> DS_dublin_grouped
-     (tc/group-by :area)
-     (tc/aggregate-columns [k]
-                           #(count (distinct %)))
-     (tc/rename-columns {:$group-name "Region"
-                         k name})))
-
-(def region-inspections
-  (regional-tbl :report-id "Number of Inspections"))
-(def region-centres
-  (regional-tbl :centre-id "Number of Centres"))
-(def region-providers
-  (regional-tbl :name-of-provider "Number of Providers"))
-
-(def regional-joined
-  (-> region-inspections
-     (tc/full-join region-centres "Region")
-     (tc/full-join region-providers "Region")
-     (tc/order-by ["Number of Inspections"] [:desc])
-     (tc/rows :as-maps)))
-
-{::clerk/visibility {:result :show}}
-(clerk/table
- regional-joined)
-
-(clerk/row
- (clerk/vl
-  (hc/xform
-   ht/bar-chart
-   :DATA regional-joined
-   :X "Region" :XTYPE :nominal :XSORT "-y"
-   :Y "Number of Inspections" :TYPE :quantitative))
- (clerk/vl
-  (hc/xform
-   ht/bar-chart
-   :DATA regional-joined
-   :X "Region" :XTYPE :nominal :XSORT "-y"
-   :Y "Number of Centres" :TYPE :quantitative))
- (clerk/vl
-  (hc/xform
-   ht/bar-chart
-   :DATA regional-joined
-   :X "Region" :XTYPE :nominal :XSORT "-y"
-   :Y "Number of Providers" :TYPE :quantitative)))
- 
-
 
 ;;
 ;; ## Overall Compliance Levels per Regulation
@@ -126,7 +66,6 @@
 ;; ### Capacity and Capability
 ;;
 ;;
-
 (defn regulations-graph [data]
   (reduce (fn [result entry]
             (let [reg (:reg-name entry)
@@ -135,14 +74,14 @@
                   subcom (:substantiallycompliant entry)]
               (conj result
                     {:regulation reg
-                     :type "compliant"
+                     :type "Fully compliant"
                      :value com}
                     {:regulation reg
-                     :type "notcompliant"
-                     :value noncom}
+                     :type "Substantially compliant"
+                     :value subcom}
                     {:regulation reg
-                     :type "substantially"
-                     :value subcom})))
+                     :type "Not compliant"
+                     :value noncom})))
           []
           (-> data (tc/rows :as-maps))))
 
@@ -158,9 +97,13 @@
    :data {:values (regulations-graph data)}
    :mark {:type "rect" :tooltip true}
    :title title
-   :encoding {:y {:field "regulation" :type "nominal" :axis { :labelLimit 0 :labelFontSize 12} :title false}
-              :x {:field "type" :type "nominal" :axis {:title "Judgement" :labelFontSize 12}}
-              :color {:field "value" :type "quantitative" :title "No. of Centres" :scale {:scheme "bluegreen"}}
+   :encoding {:y {:field "regulation" :type "nominal" :axis { :labelLimit 0 :labelFontSize 12}
+                  :title false}
+              :x {:field "type" :type "nominal"
+                  :axis {:title "Judgement" :labelFontSize 12
+                         :labelAngle -45}
+                  :sort ["compliant" "substantially" "noncompliant"]}
+              :color {:field "value" :type "quantitative" :title "No. of Centres" :scale {:scheme "tealblues"}}
               :config {:axis {:grid true :tickBand "extent"}}}
    :width 200
    :height 600})
@@ -187,13 +130,126 @@
 
 (clerk/table qual-and-saf-data)
 
-
+{::clerk/visibility {:result :hide}}
 (def ireland-map (slurp "resources/datasets/imported/irish-counties-segmentized.topojson"))
+
+
+;; ## Aggregate Compliance V2
+;; Across the regulations, 'Governance and Management' had both the highest proportion of non-compliance and the highest number of non-compliant inspections.
+
+(def compliance-by-reg-m
+  (let [ds dat/DS_pdf_info_agg_compliance]
+    (reduce concat
+            (for [reg (-> ds
+                          (tc/select-columns #":Regulation.*")
+                          (tc/column-names))
+                  :when (not= reg :Regulation_)
+                  :let [data (reg ds)
+                        num (parse-long (re-find #"\d+" (name reg)))
+                        name (or ((:capacity-and-capability dat/hiqa-regulations) num)
+                                 ((:quality-and-safety dat/hiqa-regulations) num))
+                        cat (if ((:capacity-and-capability dat/hiqa-regulations) num) "Capacity and Capability"
+                                "Quality and Safety")
+                        com (count (filter #(= "Compliant" %) data))
+                        non-com (count (filter #(= "Not compliant" %) data))
+                        subs-com (count (filter #(= "Substantially compliant" %) data))
+                        total (+ com non-com subs-com)]]
+              [(-> {}
+                   (assoc :regulation name)
+                   (assoc :category cat)
+                   (assoc :type "Fully Compliant")
+                   (assoc :val com))
+               (-> {}
+                   (assoc :regulation name)
+                   (assoc :category cat)
+                   (assoc :type "Substantially Compliant")
+                   (assoc :val subs-com))
+               (-> {}
+                   (assoc :regulation name)
+                   (assoc :category cat)
+                   (assoc :type "Non Compliant")
+                   (assoc :val non-com))]))))
+
+(def compliance-by-reg-m-2023
+  (let [ds (-> dat/DS_pdf_info_agg_compliance (tc/select-rows #(= (% :year) 2023)))]
+    (reduce concat
+            (for [reg (-> ds
+                          (tc/select-columns #":Regulation.*")
+                          (tc/column-names))
+                  :when (not= reg :Regulation_)
+                  :let [data (reg ds)
+                        num (parse-long (re-find #"\d+" (name reg)))
+                        name (or ((:capacity-and-capability dat/hiqa-regulations) num)
+                                 ((:quality-and-safety dat/hiqa-regulations) num))
+                        com (count (filter #(= "Compliant" %) data))
+                        non-com (count (filter #(= "Not compliant" %) data))
+                        subs-com (count (filter #(= "Substantially compliant" %) data))
+                        total (+ com non-com subs-com)]]
+              [(-> {}
+                   (assoc :regulation name)
+                   (assoc :type "Fully Compliant")
+                   (assoc :val com))
+               (-> {}
+                   (assoc :regulation name)
+                   (assoc :type "Substantially Compliant")
+                   (assoc :val subs-com))
+               (-> {}
+                   (assoc :regulation name)
+                   (assoc :type "Non Compliant")
+                   (assoc :val non-com))]))))
+
+(defn compliance-graph [data title type]
+  {:data {:values data}
+   :transform [{:calculate "if(datum.type === 'Fully Compliant', 0, if(datum.type === 'Substantially Compliant',1,2))"
+                :as "typeOrder"}]
+   :mark {:type "bar" :tooltip true}
+   :title title
+   :width 300
+   :height 600
+   :encoding {:x (if (= type :percentage)
+                   {:aggregate :sum :field :val
+                    :stack :normalize
+                    :title "%"}
+                   {:field :val
+                    :type :quantitative
+                    :title "Number"})
+              :y {:field :regulation
+                  :sort "-x"}
+              :color {:field :type
+                      :sort [ "Non Compliant" "Substantially Compliant" "Fully Compliant"]
+                      :title "Compliance Level"}
+              :order {:field :typeOrder}}})
+
+{::clerk/visibility {:result :show}}
+(clerk/col
+ (clerk/vl
+  (compliance-graph(filter #(= (:category %) "Capacity and Capability") compliance-by-reg-m)
+                   "% Compliance - Capacity and Capability"
+                   :percentage))
+ (clerk/vl
+  (compliance-graph(filter #(= (:category %) "Quality and Safety") compliance-by-reg-m)
+                   "% Compliance - Quality and Safety"
+                   :percentage))
+ (clerk/vl
+  (compliance-graph compliance-by-reg-m
+                    "Number Compliance by Regulation"
+                    :number)))
+(clerk/col
+ (clerk/vl
+  (compliance-graph compliance-by-reg-m-2023
+                    "% Compliance by Regulation 2023"
+                    :percentage))
+ (clerk/vl
+  (compliance-graph compliance-by-reg-m-2023
+                    "Number Compiance by Regulation 2023"
+                    :number)))
+
 ;; ### Aggregate Compliance Levels by Area and Provider
 ;;
 ;; Figures are average, and for indicative purposes only. They do not caputre the types of compliance and the nuances around the difference regulations.
 
 ;;**% Fully Compliant by Provider** (Top 10)
+{::clerk/visibility {:result :show}}
 (clerk/table
  (-> dat/DS_pdf_info_agg_compliance
      (tc/group-by :name-of-provider)
@@ -254,6 +310,7 @@
               (tc/group-by :year)
               :data)))
 
+
 {::clerk/visibility {:result :show}}
 (clerk/vl
  {:data {:values compliance-by-year-m}
@@ -270,7 +327,6 @@
                      :sort [ "Non Compliant" "Substantially Compliant" "Fully Compliant"]
                      :title "Compliance Level"}
              :order {:field :typeOrder}}})
-
 
 {::clerk/visibility {:result :hide}}
 (def compliance-by-region-m
@@ -527,9 +583,9 @@
 (defn convert-%-to-string [DS]
   (-> DS
       (tc/map-columns :percent-noncompliant [:percent-noncompliant]
-                       #(format "%.2f" %))
+                       #(format "%.1f" %))
       (tc/map-columns :percent-fully-compliant [:percent-fully-compliant]
-                      #(format "%.2f" %))))
+                      #(format "%.1f" %))))
 
 
 
@@ -820,3 +876,62 @@
      (tc/order-by :percent-noncompliant :desc)
      (tc/select-rows (range 10))
      convert-%-to-string))
+
+;; ### Inspections per Region - REMOVE LATER
+
+{::clerk/visibility {:result :hide}}
+(def DS_dublin_grouped
+  (-> dat/DS_pdf_info
+      (tc/map-columns :area [:address-of-centre]
+                      (fn [v]
+                        (when v
+                          (if (re-find #"Dublin" v)
+                            "Dublin"
+                            v))))))
+
+
+(defn regional-tbl [k name]
+  (-> DS_dublin_grouped
+     (tc/group-by :area)
+     (tc/aggregate-columns [k]
+                           #(count (distinct %)))
+     (tc/rename-columns {:$group-name "Region"
+                         k name})))
+
+(def region-inspections
+  (regional-tbl :report-id "Number of Inspections"))
+(def region-centres
+  (regional-tbl :centre-id "Number of Centres"))
+(def region-providers
+  (regional-tbl :name-of-provider "Number of Providers"))
+
+(def regional-joined
+  (-> region-inspections
+     (tc/full-join region-centres "Region")
+     (tc/full-join region-providers "Region")
+     (tc/order-by ["Number of Inspections"] [:desc])
+     (tc/rows :as-maps)))
+
+{::clerk/visibility {:result :show}}
+(clerk/table
+ regional-joined)
+
+(clerk/row
+ (clerk/vl
+  (hc/xform
+   ht/bar-chart
+   :DATA regional-joined
+   :X "Region" :XTYPE :nominal :XSORT "-y"
+   :Y "Number of Inspections" :TYPE :quantitative))
+ (clerk/vl
+  (hc/xform
+   ht/bar-chart
+   :DATA regional-joined
+   :X "Region" :XTYPE :nominal :XSORT "-y"
+   :Y "Number of Centres" :TYPE :quantitative))
+ (clerk/vl
+  (hc/xform
+   ht/bar-chart
+   :DATA regional-joined
+   :X "Region" :XTYPE :nominal :XSORT "-y"
+   :Y "Number of Providers" :TYPE :quantitative)))
