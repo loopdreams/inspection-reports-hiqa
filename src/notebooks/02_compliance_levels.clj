@@ -41,6 +41,16 @@
 
 ;; [Additional info on regulations](https://www.hiqa.ie/sites/default/files/2018-02/Assessment-of-centres-DCD_Guidance.pdf)
 
+(comment (count (:capacity-and-capability dat/hiqa-regulations))
+         (count (:quality-and-safety dat/hiqa-regulations)))
+
+(comment (let [totals (-> dat/DS_pdf_info_agg_compliance
+                          :total)
+               c (count totals)
+               t (reduce + totals)
+               min (apply min totals)
+               max (apply max totals)]
+           [(float (/ t c)) min max]))
 
 ;;
 ;; ## Overall Compliance Levels per Regulation
@@ -209,12 +219,13 @@
    :encoding {:x (if (= type :percentage)
                    {:aggregate :sum :field :val
                     :stack :normalize
-                    :title "%"}
+                    :title nil}
                    {:field :val
                     :type :quantitative
                     :title "Number"})
               :y {:field :regulation
-                  :sort "-x"}
+                  :sort "-x"
+                  :title "Regulation"}
               :color {:field :type
                       :sort [ "Non Compliant" "Substantially Compliant" "Fully Compliant"]
                       :title "Compliance Level"}
@@ -310,6 +321,14 @@
               (tc/group-by :year)
               :data)))
 
+(comment
+  (map tc/print-dataset
+       (-> (tc/dataset compliance-by-year-m)
+           (tc/group-by :type)
+           (tc/select-columns [:year :val])
+           (tc/order-by :year :desc)
+           :data)))
+
 
 {::clerk/visibility {:result :show}}
 (clerk/vl
@@ -322,7 +341,7 @@
   :encoding {:y {:aggregate :sum :field :val
                  :stack :normalize
                  :title "Average %"}
-             :x {:field :year}
+             :x {:field :year :title "Year"}
              :color {:field :type
                      :sort [ "Non Compliant" "Substantially Compliant" "Fully Compliant"]
                      :title "Compliance Level"}
@@ -445,9 +464,10 @@
    :height 600
    :encoding {:x {:aggregate :sum :field :val
                   :stack :normalize
-                  :title "Average %"}
+                  :title nil}
               :y {:field :provider
-                  :sort "-x"}
+                  :sort "-x"
+                  :title "Provider"}
               :color {:field :type
                       :sort [ "Non Compliant" "Substantially Compliant" "Fully Compliant"]
                       :title "Compliance Level"}

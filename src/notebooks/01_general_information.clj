@@ -235,6 +235,20 @@
    (into [])
    sort))
 
+(defn inspections-per-centre-year [year]
+  {year
+   (->>
+    (-> dat/DS_pdf_info
+        (tc/select-rows #(= year (% :year)))
+        (tc/group-by :centre-id {:result-type :as-indexes}))
+    (map (comp count second))
+    frequencies
+    (into [])
+    sort)})
+
+(comment
+  (map inspections-per-centre-year [2020 2021 2022 2023]))
+
 {::clerk/visibility {:result :show}}
 (clerk/md
  (let [top-inspections (apply + (map second [(nth inspections-per-centre 1)
@@ -400,8 +414,8 @@
        (tc/rename-columns {:$group-name :number-of-residents-present})
        (tc/rows :as-maps))
    :TITLE "Number of Residents Present at Time of Inspection"
-   :X :number-of-residents-present :XTYPE :nominal
-   :Y :centres :YTPE :quantitative :YSCALE {:domain [0 400]}))
+   :X :number-of-residents-present :XTYPE :nominal :XTITLE "Number of Residents Present"
+   :Y :centres :YTPE :quantitative :YSCALE {:domain [0 400]} :YTITLE "Centres"))
 
  (clerk/vl
   (hc/xform
@@ -413,8 +427,8 @@
        (tc/rename-columns {:$group-name :maximum-occupancy})
        (tc/rows :as-maps))
    :TITLE "Maximum Occupancy - HIQA Register"
-   :X :maximum-occupancy :XTYPE :nominal 
-   :Y :number-of-centres)))
+   :X :maximum-occupancy :XTYPE :nominal  :XTITLE "Maximum Occupancy"
+   :Y :number-of-centres :YTITLE "Centres")))
 
 ;; Below is a table comparing the maximum occupancy for a centre as recorded in the HIQA register vs.
 ;; the number of residents present at the date of the last inspection. There are obviously a lot of
@@ -517,7 +531,7 @@
 
 (def decongregated-max
   (max-occupancy-totals > 10))
-(-> dat/DS_pdf_info)
+
 
 {::clerk/visibility {:result :show}}
 (clerk/md

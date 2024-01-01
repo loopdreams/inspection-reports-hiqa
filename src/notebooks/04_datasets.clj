@@ -8,3 +8,8 @@
 (clerk/table
  (-> dat/DS_pdf_info
      (tc/info :columns)))
+
+(clerk/table
+ (-> dat/DS_pdf_info_agg_compliance
+     (tc/select-columns [:total])
+     (tc/info)))

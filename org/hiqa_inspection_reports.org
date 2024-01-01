@@ -1,7 +1,7 @@
 #+title: Hiqa Inspection Reports - Initial Look
 #+LATEX_CLASS: article
 #+LATEX_CLASS_OPTIONS:[a4paper,11pt,twoside]
-#+OPTIONS: toc:t H:3
+#+OPTIONS: toc:t H:3 author:nil
 #+LATEX_HEADER: \usepackage{helvet}
 #+LATEX_HEADER: \renewcommand\familydefault{\sfdefault}
 #+LATEX_HEADER: \setlength{\textheight}{230mm}
@@ -11,12 +11,12 @@
 #+LATEX_HEADER: \setlength{\evensidemargin}{0mm}
 #+LATEX_HEADER: \addtolength{\parskip}{0.33\baselineskip}
 #+LATEX_HEADER: \setlength\parindent{0pt}
-#+LaTeX_HEADER: \usepackage[inline]{enumitem}
-#+LaTeX_HEADER: \setlist{nosep}
+#+LATEX_HEADER: \usepackage[inline]{enumitem}
+#+LATEX_HEADER: \setlist{nosep}
+#+LATEX_HEADER: \usepackage[margin=0.5in]{geometry}
 
 
 * Context and Method
-
 The data below was taken from the [[https://www.hiqa.ie/reports-and-publications/inspection-reports][HIQA Inspection Reports]] for Disability Centres, available on their website in =.pdf= format.
 
 Report URLs are listed under pages for [[https://www.hiqa.ie/find-a-centre][centres]] where an inspection has occurred ([[https://www.hiqa.ie/areas-we-work/find-a-centre/st-dominics-services][example]]). Using the HIQA register for disability centres, I was able to get the URLs for the centre pages, and from these, the URLs for all inspection  reports.
@@ -33,48 +33,219 @@ This is not an exhaustive list of information that could be extracted from the r
 As part of this process 3,179 Inspection Reports were gathered/parsed. This compares with 3,312 that appear to be available on the HIQA website (as at 30th December, 2023). In other words, the data covers about 96% of the Inspection Reports for Disability Centres.
 
 * Number of Inspections
+- *1,333* centres
+- *3,179* inspection reports
+- *94* providers
 
-TODO
-
-- There were *1,325* centres
-- Across *3,097* inspection reports
-- There were *94* providers
+For the years 2021 and 2022, there were a full set of reports. A full set of reports for 2023 has not been published yet (most recent is from October 2023). For 2021 and 2022, the average number of inspections per month was *86*.
 
 #+ATTR_LATEX: :width 7cm
-[[file:img/inspections_by_year.png]]
+[[file:img/01_inspections_by_year.png]]
 
-TODO Inspections by month graph
+[[file:img/02_inspections_by_month.png]]
+
+* Number of Inspections per Centre
+A significant majority (*78%*) of centres received either 2 or 3 inspections over the period covered by the reports.
+
+#+caption: Number of Inspections per Centre 2020-2023
+| Number of Inspections | Number of Centres |
+|-----------------------+-------------------|
+|                     1 |               168 |
+|                     2 |               636 |
+|                     3 |               415 |
+|                     4 |                84 |
+|                     5 |                23 |
+|                     6 |                 6 |
+|                     7 |                 1 |
+
+
+#+caption: Number of Inspections per Centre by Year
+| Year | 1 Inspection | 2 Inspections | 3 Inspections |
+|------+--------------+---------------+---------------|
+| 2020 |          367 |             6 |             1 |
+| 2021 |          883 |            73 |             2 |
+| 2022 |          817 |            94 |             9 |
+| 2023 |          655 |            36 |             1 |
+
 * Number of Residents Present
 
-The number of residents present at the time of inspection is highly contingent, so any clear line drawn between 'number of residents present' and actual 'occupancy' level of the centres is difficult. For example, there were 20 (TODO) centres with '0' residents present at time of inspection. The HIQA register also lists *maximum occupancy* for a centre. Therefore, the true 'number of residents' would be somewhere between residents present for the inspection and maximum occupancy. To complicate things further, there were a number of centres which had /more/ residents present compared to the 'maximum occupancy' as listed in the HIQA register, for example, [[https://www.hiqa.ie/areas-we-work/find-a-centre/grove-1][see this centre and corresponding inspection report]].
+The number of residents present at the time of inspection is highly contingent, so any clear line drawn between 'number of residents present' and actual 'occupancy' level of the centres is difficult. For example, there were 19 centres with '0' residents present at time of inspection. The HIQA register also lists *maximum occupancy* for a centre. Therefore, the true 'number of residents' would be somewhere between residents present for the inspection and maximum occupancy. To complicate things further, there were a number of centres which had /more/ residents present compared to the 'maximum occupancy' as listed in the HIQA register, for example, [[https://www.hiqa.ie/areas-we-work/find-a-centre/grove-1][see this centre and corresponding inspection report]].
 
 Figures relating to 'number of residents present' were taken from the /most recent/ inspection report where there were multiple inspections per centre.
 
-- The total number of residents present across the reports was TODO
-- The total maximum occupancy according to the HIQA register is *9,081*
+- The total number of residents present across the reports was *7,515*
+- The total maximum occupancy according to the HIQA register is *9,126*
 
-By linking both datasets and filtering for centres with a maximum occupancy *greater than 9*, the difference between maximum occupancy for these centre, and number of residents present was *812* (TODO), which could potentially be taken as a rough proxy for *number of people decongregated*
 
 ** Distribution - Residents Present and Maximum Occupancy
 
-TODO-Graphs
+The majority of centres had *4* residents present at time of inspection.
+
+[[file:img/03_no_residents_dist.png]]
+
+[[file:img/04_max_occupancy_dist.png]]
+
 ** Congregated and Decongregated Settings
 
 Based on 'number of residents present', *70%* of people lived in decongregated settings. Based on the HIQA register, *66%* of the maximum occupancy is related to decongregated settings.
 
-This corresponds to TODO *162* (*12%*) congregated centres and *1,162* decongregated centers aligned to 'number of residents present', and *219* congregated centres and *1,336* decongregated centres according to the HIQA register 'maximum occupancy'
+This corresponds to *163* (*14%*) congregated centres and *1,169* decongregated centers aligned to 'number of residents present', and *218* congregated centres and *1,353* decongregated centres according to the HIQA register 'maximum occupancy'
 
 TODO-Graphs
 * Compliance Levels
+There are 32 regulations that can be checked as part of inspections. Not every inspection checks for compliance against all regulations. On average, *12* regulations were checked per inspection. Compliance is listed as either "Compliant", "Substantially compliant" or "Not compliant".
+
+The following regulations relate to the area of *Capacity and Capability*:
+
+- Regulation 3: Statement of purpose
+- Regulation 4: Written policies and procedures
+- Regulation 14: Person in charge
+- Regulation 15: Staffing
+- Regulation 16: Training and staff development
+- Regulation 19: Directory of residents
+- Regulation 21: Records
+- Regulation 22: Insurance
+- Regulation 23: Governance and management
+- Regulation 24: Admissions and contract for the provision of services
+- Regulation 30: Volunteers
+- Regulation 31: Notification of incidents
+- Regulation 32: Notifications of periods when person in charge is absent
+- Regulation 33: Notifications of procedures and arrangements for periods when person in charge is absent
+- Regulation 34: Complaints procedure
+
+The following regulations relate to *Quality and Safety*:
+
+- Regulation 5: Individualised assessment and personal plan
+- Regulation 6: Healthcare
+- Regulation 7: Positive behaviour support
+- Regulation 8: Protection
+- Regulation 9: Residents' rights
+- Regulation 10: Communication
+- Regulation 11: Visits
+- Regulation 12: Personal possessions
+- Regulation 13: General welfare and development
+- Regulation 17: Premises
+- Regulation 18: Food and nutrition
+- Regulation 20: Information for residents
+- Regulation 25: Temporary absence, transition and discharge of residents
+- Regulation 26: Risk management procedures
+- Regulation 27: Protections against infection
+- Regulation 28: Fire precautions
+- Regulation 29: Medicines and pharmaceutical services
+
 ** By Year
+
+The rate of non-compliant regulations stayed mostly stable at around 10-11% per year.
+
+| Year | Compliant | Substantially compliant | Not compliant |
+|------+-----------+-------------------------+---------------|
+| 2023 |      6020 |                    1615 |           941 |
+| 2022 |      6340 |                    2546 |          1078 |
+| 2021 |     10303 |                    2799 |          1448 |
+| 2020 |      3747 |                     930 |           563 |
+
+[[file:img/07_compliance_by_year.png]]
+
 ** By Regulation
 *** Capacity and Capability
+
+The most checked capacity and capability regulation across the reports was regulation 23, *governance and management*, which also had the highest rate of non compliance.
+
+C = Compliant
+SC = Substantially compliant
+NC = Not compliant
+|                                                          |      |     |     |       |       |
+| Regulation                                               |    C |  SC |  NC | Total |  % NC |
+|----------------------------------------------------------+------+-----+-----+-------+-------|
+| Governance and management                                | 1339 | 763 | 546 |  2648 | 20.62 |
+| Staffing                                                 | 1680 | 530 | 320 |  2530 | 12.65 |
+| Training and staff development                           | 1353 | 710 | 204 |  2267 |  9.00 |
+| Person in charge                                         | 1528 |  42 |  46 |  1616 |  2.85 |
+| Notification of incidents                                | 1132 |  72 | 294 |  1498 | 19.63 |
+| Statement of purpose                                     | 1160 | 231 |  33 |  1424 |  2.32 |
+| Complaints procedure                                     |  892 | 126 |  64 |  1082 |  5.91 |
+| Admissions and contract for the provision of services    |  375 | 135 |  87 |   597 | 14.57 |
+| Directory of residents                                   |  362 |  40 |   7 |   409 |  1.71 |
+| Written policies and procedures                          |  188 | 106 |  39 |   333 | 11.71 |
+| Records                                                  |  124 | 106 |  36 |   266 | 13.53 |
+| Notifications of periods when person in charge is absent |   41 |   1 |   8 |    50 | 16.00 |
+
+[[file:img/08_compliance_capacity.png]]
+
 *** Quality and Safety
+
+The most checked quality and safety regulation across the reports was regulation 27, *protections against infection*. The regulation with the highest rate of non-compliance was regulation 28, *Fire precautions*.
+
+C = Compliant
+SC = Substantially compliant
+NC = Not compliant
+
+| Regulation                                               |    C |  SC |  NC | Total |  % NC |
+|----------------------------------------------------------+------+-----+-----+-------+-------|
+| Protections against infection                            | 1576 | 872 | 327 |  2775 | 11.78 |
+| Protection                                               | 1842 | 249 | 204 |  2295 |  8.89 |
+| Individualised assessment and personal plan              | 1482 | 538 | 216 |  2236 |  9.66 |
+| Risk management procedures                               | 1381 | 563 | 179 |  2123 |  8.43 |
+| Fire precautions                                         | 1055 | 660 | 406 |  2121 | 19.14 |
+| Premises                                                 |  936 | 798 | 343 |  2077 | 16.51 |
+| Positive behaviour support                               | 1206 | 428 | 166 |  1800 |  9.22 |
+| Healthcare                                               | 1521 | 185 |  48 |  1754 |  2.74 |
+| Residents' rights                                        | 1251 | 210 | 200 |  1661 | 12.04 |
+| General welfare and development                          |  819 | 118 |  70 |  1007 |  6.95 |
+| Medicines and pharmaceutical services                    |  381 | 154 |  74 |   609 | 12.15 |
+| Communication                                            |  505 |  52 |   8 |   565 |  1.42 |
+| Information for residents                                |  510 |  35 |   2 |   547 |  0.37 |
+| Food and nutrition                                       |  393 |  44 |  12 |   449 |  2.67 |
+| Personal possessions                                     |  249 |  93 |  69 |   411 | 16.79 |
+| Visits                                                   |  367 |  15 |   6 |   388 |  1.55 |
+| Temporary absence, transition and discharge of residents |  158 |  10 |  16 |   184 |  8.70 |
+
+[[file:img/09_compliance_quality.png]]
+
 ** By Provider
+
+As mentioned above, there were 94 providers tracked across the reports. Below are the first 20 providers, ordered by *number of regulations checked*.
+
+[[file:img/10_compliance_providers.png]]
+
+The Top 10 providers by *% full compliance* are:
+
+| Provider                                                            | Total Regs Checked | % Full Compliant |
+|---------------------------------------------------------------------+--------------------+------------------|
+| The Multiple Sclerosis Society of Ireland                           |                 13 |            100.0 |
+| MyLife by Estrela Hall Limited                                      |                 87 |             95.8 |
+| St. Paul's Child and Family Care Centre Designated Activity Company |                 97 |             91.4 |
+| Lorrequer House                                                     |                 33 |             90.8 |
+| Prosper Fingal Company Limited by Guarantee                         |                 93 |             87.6 |
+| Co Wexford Community Workshop (Enniscorthy) CLG                     |                 76 |             84.6 |
+| The Anne Sullivan Centre CLG                                        |                 36 |             81.1 |
+| St Aidan's Day Care Centre Company Limited by Guarantee             |                103 |             80.9 |
+| Gheel Autism Services Company Limited by Guarantee                  |                112 |             79.0 |
+| Terra Glen Residential Care Services Limited                        |                 52 |             78.9 |
+|                                                                     |                    |                  |
+
+The Top 10 providers by *% full compliance where there were > 200 regulations checked* are:
+
+| Provider                                                            | Total Regs Checked | % Full Compliant |
+|---------------------------------------------------------------------+--------------------+------------------|
+| GALRO Unlimited Company                                             |                473 |             77.4 |
+| Talbot Care Unlimited Company                                       |                521 |             73.2 |
+| RehabCare                                                           |                769 |             72.7 |
+| Dundas Unlimited Company                                            |                393 |             70.1 |
+| Nua Healthcare Services Limited                                     |               1814 |             70.1 |
+| Western Care Association                                            |                506 |             68.8 |
+| Praxis Care                                                         |                634 |             66.1 |
+| Daughters of Charity Disability Support Services CLG                |               1222 |             63.9 |
+| Muiríosa Foundation                                                 |               1515 |             63.0 |
+| KARE, Promoting Inclusion for People with Intellectual Disabilities |                396 |             62.5 |
+|                                                                     |                    |                  |
+
+
+As can be seen, *Nua Healthcare* stands out as a provider with both a high level of service and a high level of compliance.
+
 * Regulation 23: Governance and Management
 
 As Regulation 23: Governance and Management is both highly inspected and is approximately 20% non compliant on average, it is worth looking more closely into it. From the HIQA documentation, the following elements contribute to this being marked as compliant/noncompliant:
-
 
 Indicators of compliance include:
 
