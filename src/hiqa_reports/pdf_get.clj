@@ -12,9 +12,9 @@
 
 (def report-list
   (->> (:reports DS-hiqa-register)
+       (remove nil?)
        (map edn/read-string)
-       flatten
-       (remove nil?)))
+       flatten))
 
 (defn- fetch-pdf!
   "makes an HTTP request and fetches the binary object"
@@ -27,7 +27,7 @@
   "downloads and stores the pdf to disk"
   [pdf-link]
   (let [p (fetch-pdf! pdf-link)]
-    (when (not (nil? p))
+    (if (nil? p) (println (str "Failed: " pdf-link))
       (let [filename (second (str/split (re-find pdf-matcher pdf-link) #"/"))]
         (with-open [w (io/output-stream (str destination-dir filename))]
           (.write w p))))))
@@ -64,11 +64,16 @@
 
 ;; update the DB
 (comment
-  (scrape-all-reports register-tbl output-register-file)
+  (time
+   (scrape-all-reports register-tbl output-register-file))
 
   (update-pdfs!))
 
 
+(comment
+  (pmap save-pdf!
+        (set/difference (set report-list)
+                        (set (str/split-lines (slurp "resources/report_urls_list/20231230_report_list.txt"))))))
 
 ;; Additional analysis fns
 (def filename-date-matcher #"(\d{1,2})-(\w+)-(\d{4})")

@@ -1,6 +1,7 @@
 (ns hiqa-reports.openai-api
   (:require
    [cheshire.core :as json]
+   [notebooks.03-sentiment-levels :refer [DS_joined]]
    [clojure.edn :as edn]
    [clojure.java.io :as io]
    [clojure.string :as str]
@@ -100,7 +101,7 @@
 
 ;; Build db from responses json files (generated below)
 (comment
-  (add-responses-to-db! (str responses-dir "batch_24.json")))
+  (add-responses-to-db! (str responses-dir "updated_20231231.json")))
 
 (comment
   (map build-responses-db! (sort (rest (file-seq (io/file responses-dir))))))
@@ -110,6 +111,16 @@
                  (-> DS_pdf_info
                      (tc/select-columns [:centre-id :report-id :observations])
                      (tc/rows :as-maps))))
+
+(defn update-responses [ds_joined]
+  (-> ds_joined
+      (tc/select-rows #(= (% :rating) nil))
+      (tc/select-columns [:centre-id :report-id :observations])
+      (tc/rows :as-maps)))
+
+
+(comment
+  (fetch-and-log-response! (update-responses DS_joined) (str responses-dir "updated_20231231.json")))
 
 ;; Fetching responses in batches
 (comment)
@@ -221,8 +232,8 @@
 
 ;; loop through entries and check which fail to render as edn
 
-(defn print-error-idx [start-at batch-no]
-  (loop [[x & xs] (drop start-at (json/parse-stream (io/reader (str responses-dir "batch_" batch-no ".json")) true))
+(defn print-error-idx [start-at name]
+  (loop [[x & xs] (drop start-at (json/parse-stream (io/reader (str responses-dir name ".json")) true))
          c start-at]
     (println c)
     (when x
@@ -232,7 +243,7 @@
        (inc c)))))
 
 (comment
-  (print-error-idx 0 30))
+  (print-error-idx 0 "updated_20231231"))
 
 ;; entry ids of failed indexes
 (comment

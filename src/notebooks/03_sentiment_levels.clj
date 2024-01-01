@@ -17,6 +17,7 @@
   (-> dat/DS_pdf_info
       (tc/full-join DS_sentiment :report-id)))
 
+
 (def DS_joined_compliance
   (-> dat/DS_pdf_info_agg_compliance
       (tc/full-join DS_sentiment :report-id)))
@@ -195,6 +196,96 @@
 
    :mark     "geoshape"
    :encoding {:color {:field "percentage-positive" :type "quantitative"}}}))
+
+(def rating-by-residents-present
+  (-> DS_joined
+      (tc/drop-missing :number-of-residents-present)
+      (tc/group-by :number-of-residents-present)
+      (tc/aggregate {:num-positive #(count (filter (fn [r] (= r "positive")) (% :rating)))
+                     :num-negative #(count (filter (fn [r] (= r "negative")) (% :rating)))
+                     :num-neutral #(count (filter (fn [r] (= r "neutral")) (% :rating)))
+                     :total #(count (filter (fn [r] (some #{r} ["positive" "negative" "neutral"])) (% :rating)))})
+      (tc/map-columns :percent-positive [:num-positive :total] #(float (/ %1 %2)))
+      (tc/map-columns :percent-negative [:num-negative :total] #(float (/ %1 %2)))
+      (tc/map-columns :percent-neutral [:num-neutral :total] #(float (/ %1 %2)))
+      (tc/rename-columns {:$group-name :residents})))
+
+
+
+
+(clerk/vl
+ (hc/xform
+  ht/bar-chart
+  :DATA (-> rating-by-residents-present (tc/rows :as-maps))
+  :X :residents :XTYPE :nominal
+  :Y :percent-positive :YTYPE :quantitative
+  :COLOR ht/default-color :CFIELD :num-positive :CTYPE :quantitative))
+
+(clerk/vl
+ (hc/xform
+  ht/bar-chart
+  :DATA (-> rating-by-residents-present (tc/rows :as-maps))
+  :X :residents :XTYPE :nominal
+  :Y :percent-negative :YTYPE :quantitative
+  :COLOR ht/default-color :CFIELD :num-negative :CTYPE :quantitative))
+
+
+(def rating-and-compliance
+  (-> DS_joined_compliance
+      (tc/group-by :rating)
+      (tc/aggregate {:percent-fully-com #(float (/ (reduce + (% :num-compliant))
+                                                   (reduce + (% :total))))
+                     :percent-non-com #(float (/ (reduce + (% :num-notcompliant))
+                                                 (reduce + (% :total))))})
+      (tc/rename-columns {:$group-name :GPTrating})))
+
+(clerk/row
+ (clerk/vl
+  (hc/xform
+   ht/bar-chart
+   :DATA (-> rating-and-compliance (tc/rows :as-maps))
+   :X :GPTrating :XTYPE "nominal"
+   :Y :percent-fully-com))
+ (clerk/vl
+  (hc/xform
+   ht/bar-chart
+   :DATA (-> rating-and-compliance (tc/rows :as-maps))
+   :X :GPTrating :XTYPE "nominal"
+   :Y :percent-non-com)))
+
+(def rating-by-provider
+  (-> DS_joined
+      (tc/group-by :name-of-provider)
+      (tc/aggregate {:num-positive #(count (filter (fn [r] (= r "positive")) (% :rating)))
+                     :num-negative #(count (filter (fn [r] (= r "negative")) (% :rating)))
+                     :num-neutral #(count (filter (fn [r] (= r "neutral")) (% :rating)))
+                     :total #(count (filter (fn [r] (some #{r} ["positive" "negative" "neutral"])) (% :rating)))})
+      (tc/map-columns :percent-positive [:num-positive :total] #(float (/ %1 %2)))
+      (tc/map-columns :percent-negative [:num-negative :total] #(float (/ %1 %2)))
+      (tc/map-columns :percent-neutral [:num-neutral :total] #(float (/ %1 %2)))
+      (tc/rename-columns {:$group-name :provider})
+      (tc/order-by :total :desc)))
+
+(clerk/vl
+ (hc/xform
+  ht/bar-chart
+  :DATA (-> rating-by-provider
+            (tc/select-rows #(< 50 (% :total)))
+            (tc/rows :as-maps))
+  :Y :provider :YTYPE :nominal :YSORT "-x"
+  :X :percent-positive
+  :COLOR ht/default-color :CFIELD :num-positive :CTYPE :quantitative))
+
+(clerk/vl
+ (hc/xform
+  ht/bar-chart
+  :DATA (-> rating-by-provider
+            (tc/select-rows #(< 25 (% :total)))
+            (tc/rows :as-maps))
+  :Y :provider :YTYPE :nominal :YSORT "-x"
+  :X :percent-negative
+  :COLOR ht/default-color :CFIELD :num-negative :CTYPE :quantitative))
+
 
 ;; ## Keywords
 

@@ -1,0 +1,155 @@
+#+title: Hiqa Inspection Reports - Initial Look
+#+LATEX_CLASS: article
+#+LATEX_CLASS_OPTIONS:[a4paper,11pt,twoside]
+#+OPTIONS: toc:t H:3
+#+LATEX_HEADER: \usepackage{helvet}
+#+LATEX_HEADER: \renewcommand\familydefault{\sfdefault}
+#+LATEX_HEADER: \setlength{\textheight}{230mm}
+#+LATEX_HEADER: \setlength{\textwidth}{160mm}
+#+LATEX_HEADER: \setlength{\voffset}{-10mm}
+#+LATEX_HEADER: \setlength{\oddsidemargin}{0mm}
+#+LATEX_HEADER: \setlength{\evensidemargin}{0mm}
+#+LATEX_HEADER: \addtolength{\parskip}{0.33\baselineskip}
+#+LATEX_HEADER: \setlength\parindent{0pt}
+#+LaTeX_HEADER: \usepackage[inline]{enumitem}
+#+LaTeX_HEADER: \setlist{nosep}
+
+
+* Context and Method
+
+The data below was taken from the [[https://www.hiqa.ie/reports-and-publications/inspection-reports][HIQA Inspection Reports]] for Disability Centres, available on their website in =.pdf= format.
+
+Report URLs are listed under pages for [[https://www.hiqa.ie/find-a-centre][centres]] where an inspection has occurred ([[https://www.hiqa.ie/areas-we-work/find-a-centre/st-dominics-services][example]]). Using the HIQA register for disability centres, I was able to get the URLs for the centre pages, and from these, the URLs for all inspection  reports.
+
+Reports are written according to a **standard template**, making them relatively easy to parse. I extracted information from the following sections of the reports:
+
+- *'Frontmatter'* area on the first page, including details of the centre id, date of inspection, type of inspection, etc.
+- *Number of residents present* at the time of inspection
+- Levels of *compliance* for the regulations inspected ("Compliant", "Not compliant", "Substantially compliant")
+- The narrative text from the section titled "*What residents told us and what inspectors observed*"
+
+This is not an exhaustive list of information that could be extracted from the reports.
+
+As part of this process 3,179 Inspection Reports were gathered/parsed. This compares with 3,312 that appear to be available on the HIQA website (as at 30th December, 2023). In other words, the data covers about 96% of the Inspection Reports for Disability Centres.
+
+* Number of Inspections
+
+TODO
+
+- There were *1,325* centres
+- Across *3,097* inspection reports
+- There were *94* providers
+
+#+ATTR_LATEX: :width 7cm
+[[file:img/inspections_by_year.png]]
+
+TODO Inspections by month graph
+* Number of Residents Present
+
+The number of residents present at the time of inspection is highly contingent, so any clear line drawn between 'number of residents present' and actual 'occupancy' level of the centres is difficult. For example, there were 20 (TODO) centres with '0' residents present at time of inspection. The HIQA register also lists *maximum occupancy* for a centre. Therefore, the true 'number of residents' would be somewhere between residents present for the inspection and maximum occupancy. To complicate things further, there were a number of centres which had /more/ residents present compared to the 'maximum occupancy' as listed in the HIQA register, for example, [[https://www.hiqa.ie/areas-we-work/find-a-centre/grove-1][see this centre and corresponding inspection report]].
+
+Figures relating to 'number of residents present' were taken from the /most recent/ inspection report where there were multiple inspections per centre.
+
+- The total number of residents present across the reports was TODO
+- The total maximum occupancy according to the HIQA register is *9,081*
+
+By linking both datasets and filtering for centres with a maximum occupancy *greater than 9*, the difference between maximum occupancy for these centre, and number of residents present was *812* (TODO), which could potentially be taken as a rough proxy for *number of people decongregated*
+
+** Distribution - Residents Present and Maximum Occupancy
+
+TODO-Graphs
+** Congregated and Decongregated Settings
+
+Based on 'number of residents present', *70%* of people lived in decongregated settings. Based on the HIQA register, *66%* of the maximum occupancy is related to decongregated settings.
+
+This corresponds to TODO *162* (*12%*) congregated centres and *1,162* decongregated centers aligned to 'number of residents present', and *219* congregated centres and *1,336* decongregated centres according to the HIQA register 'maximum occupancy'
+
+TODO-Graphs
+* Compliance Levels
+** By Year
+** By Regulation
+*** Capacity and Capability
+*** Quality and Safety
+** By Provider
+* Regulation 23: Governance and Management
+
+As Regulation 23: Governance and Management is both highly inspected and is approximately 20% non compliant on average, it is worth looking more closely into it. From the HIQA documentation, the following elements contribute to this being marked as compliant/noncompliant:
+
+
+Indicators of compliance include:
+
+- the management structure is clearly defined and identifies the lines of authority and accountability, specifies roles and details responsibilities for all areas of service provision and includes arrangements for a person to manage the centre during absences of the person in charge, for example during annual leave or absence due to illness.
+- where there is more than one identified person participating in the management of the centre, the operational governance arrangement are clearly defined. Decisions are communicated, implemented and evaluated.
+- management systems are in place to ensure that the service provided is safe, appropriate to residents’ needs, consistent and effectively monitored
+- the person in charge demonstrates sufficient knowledge of the legislation and his/her statutory responsibilities and has complied with the regulations and or standards
+- there is an annual review of the quality and safety of care and support in the designated centre
+- a copy of the annual review is made available to residents
+- residents and their representatives are consulted with in the completion of the annual review of the quality and safety of care
+- the registered provider (or nominated person) visits the centre at least once every six months and produces a report on the safety and quality of care and support provided in the centre
+- arrangements are in place to ensure staff exercise their personal and professional responsibility for the quality and safety of the services that they are delivering
+- there are adequate resources to support residents achieving their individual personal plans
+- the facilities and services in the centre reflect the statement of purpose
+- practice is based on best practice and complies with legislative, regulatory and contractual requirements.
+
+
+Indicators of non-compliance include:
+
+- there are insufficient resources in the centre and the needs of residents are not met
+- there are sufficient resources but they are not appropriately managed to adequately meet residents’ needs
+- due to a lack of resources, the delivery of care and support is not in accordance with the statement of purpose
+- there is no defined management structure
+- governance and management systems are not known nor clearly defined
+- there are no clear lines of accountability for decision making and responsibility for the delivery of services to residents
+- staff are unaware of the relevant reporting mechanisms
+- there are no appropriate arrangements in place for periods when the person in charge is absence from the centre
+- the person in charge is absent from the centre but no suitable arrangements have been made for his or her absence
+- the person in charge is ineffective in his/her role and outcomes for residents are poor
+- the centre is managed by a suitably qualified person in charge; however, there are some gaps in his/her knowledge of their responsibilities under the regulations and this has resulted in some specific requirements not been met
+- the person in charge is inaccessible to residents and their families, and residents do not know who is in charge of the centre
+- an annual review of the quality and safety of care in the centre does not take place
+- an annual review of the quality and safety of care in the centre takes place but there is no evidence of learning from the review
+- a copy of the annual review is not made available to residents and or to the Chief Inspector
+- the registered provider (or nominated person) does not make an unannounced visit to the centre at least once every six months
+- the registered provider (or nominated person) does not produce a report on the safety and quality of care and support provided in the centre
+- effective arrangements are not in place to support, develop or manage all staff to exercise their responsibilities appropriately.
+
+
+#+caption: Reg 23 % Non Compliant with > 50 inspections (Top 10)
+| Provider Name                                        | Non compliant | % Non compliant |
+|------------------------------------------------------+---------------+-----------------|
+| Camphill Communities of Ireland                      |            29 |            53.7 |
+| COPE Foundation                                      |            40 |            48.8 |
+| Ability West                                         |            23 |            35.9 |
+| Daughters of Charity Disability Support Services CLG |            31 |            35.2 |
+| Stewarts Care Limited                                |            23 |            34.3 |
+| Sunbeam House Services Company Limited by Guarantee  |            15 |            26.8 |
+| Brothers of Charity Services Ireland CLG             |            87 |            25.5 |
+| St Michael's House                                   |            29 |            19.2 |
+| Health Service Executive                             |            52 |            18.1 |
+| Avista CLG                                           |            16 |            16.7 |
+
+#+begin_src clojure :results value raw :exports results
+
+(require '[tablecloth.api :as tc])
+(require '[hiqa-reports.parsers-writers :as dat])
+
+(-> dat/DS_pdf_info_agg_compliance
+    (tc/group-by :name-of-provider)
+    (tc/aggregate {:total #(reduce + (% :total))
+                   "Non compliant"
+                   #(reduce + (% :num-notcompliant))
+                   "Avg % Non compliant"
+                   #(float (/ (reduce + (% :num-notcompliant))
+                              (reduce + (% :total))))})
+    (tc/select-rows #(< 200 (% :total)))
+    (tc/rename-columns {:$group-name "Provider"})
+    (tc/drop-columns :total)
+    (tc/order-by "Avg % Non compliant" :desc)
+    (tc/select-rows (range 10))
+    (tc/set-dataset-name "% Non Compliance with > 200 Regulations Checked"))
+
+
+#+end_src
+* Sentiment (GPT/Experimental)
+** Rating
+** Keywords

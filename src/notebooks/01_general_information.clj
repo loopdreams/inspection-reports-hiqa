@@ -33,6 +33,8 @@
 ;;
 ;; ;; TODO Information on the 'success rate'
 ;;
+;; 3,179 / 3,312 - 96% - 31 December 2023
+;;
 ;; Below is some general information and insights gathered from the data contained in the reports, using information contained in the frontmatter and the 'number of residents' present field.
 ;;
 ;; There are separate pages for :
@@ -60,6 +62,7 @@
       "** providers."))
 
 
+(-> dat/DS_pdf_info (tc/info :basic))
 
 ;; **Number of Inspections**
 
@@ -76,6 +79,7 @@
             (tc/order-by "Year" [:desc])
             (tc/rows :as-maps))
   :TITLE "Number of Inspections by Year"
+  :WIDTH 150
   :X "Year" :XTYPE :nominal
   :Y "Inspections" :YTYPE :quantitative))
 
@@ -429,20 +433,22 @@
 {::clerk/visibility {:result :hide}}
 (def joined-occupancy
   (-> dat/DS_pdf_info
-        (tc/drop-missing :number-of-residents-present)
-        (tc/group-by :centre-id)
-        (tc/aggregate {:no-residents-most-recent
-                        #(most-recent-resident-no
-                          (% :date)
-                          (% :number-of-residents-present))})
-        (tc/rename-columns {:$group-name :Centre_ID})
-        (tc/full-join DS-hiqa-register :Centre_ID)
-        (tc/select-columns [:Centre_ID :Maximum_Occupancy :no-residents-most-recent])
-        (tc/drop-missing :no-residents-most-recent)
-        (tc/order-by :Centre_ID)
-        (tc/map-columns :difference
-                         [:Maximum_Occupancy :no-residents-most-recent]
-                         #(- %1 %2))))
+      (tc/drop-missing :number-of-residents-present)
+      (tc/group-by :centre-id)
+      (tc/aggregate {:no-residents-most-recent
+                     #(most-recent-resident-no
+                       (% :date)
+                       (% :number-of-residents-present))})
+      (tc/rename-columns {:$group-name :Centre_ID})
+      (tc/full-join DS-hiqa-register :Centre_ID)
+      (tc/select-columns [:Centre_ID :Maximum_Occupancy :no-residents-most-recent])
+      (tc/drop-missing :no-residents-most-recent)
+      (tc/drop-missing :Maximum_Occupancy)
+      (tc/order-by :Centre_ID)
+      (tc/map-columns :difference
+                      [:Maximum_Occupancy :no-residents-most-recent]
+                      #(- %1 %2))))
+
 
 (defn totals-present [fn no]
   (reduce +
@@ -461,6 +467,44 @@
           (-> DS-hiqa-register
               (tc/select-rows #(fn no (% :Maximum_Occupancy)))
               :Maximum_Occupancy)))
+
+(def no-centres-hiqa-reg-congregate
+  (-> DS-hiqa-register
+      (tc/select-rows #(< 9 (% :Maximum_Occupancy)))
+      :Centre_ID
+      distinct
+      count))
+
+(def no-centres-hiqa-reg-decongregated
+  (-> DS-hiqa-register
+      (tc/select-rows #(> 10 (% :Maximum_Occupancy)))
+      :Centre_ID
+      distinct
+      count))
+
+(def no-res-most-recent-by-centre
+  (-> dat/DS_pdf_info
+      (tc/drop-missing :number-of-residents-present)
+      (tc/group-by :centre-id)
+      (tc/aggregate {:no-residents-most-recent
+                     #(most-recent-resident-no
+                       (% :date)
+                       (% :number-of-residents-present))})
+      (tc/rename-columns {:$group-name :centre-id})))
+
+(def no-centres-res-present-congregated
+  (-> no-res-most-recent-by-centre
+      (tc/select-rows #(< 9 (% :no-residents-most-recent)))
+      :centre-id
+      distinct
+      count))
+
+(def no-centres-res-present-decongregated
+  (-> no-res-most-recent-by-centre
+      (tc/select-rows #(> 10 (% :no-residents-most-recent)))
+      :centre-id
+      distinct
+      count))
 
 (def congregated-total-present
   (totals-present < 9))

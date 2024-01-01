@@ -430,9 +430,11 @@
   ;; Elapsed time: 181533.344375 msecs
   ;; Elapsed time: 184602.791167 msecs
   ;; 3 mins
+  ;; Elapsed time: 303426.965375 msecs (map)
 
   (full-csv-write!))
   ;; 3098
+  ;; 3180
 
 
 (comment
