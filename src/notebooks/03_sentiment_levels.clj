@@ -12,6 +12,13 @@
    [tablecloth.api :as tc]
    [cheshire.core :as json]))
 
+{::clerk/visibility {:result :hide}}
+(def col-red "#e27076")
+(def col-yellow "#aadad4")
+(def col-green "#33779c")
+
+
+
 ;; # Sentiment Levels
 
 ;; Aggregate 'sentiment' levels were obtained by passing the text contained under the section **What residents told us and what inspectors observed** to `GPT-3.5` for evaluation.
@@ -124,7 +131,10 @@
    :height 400
    :width 400
    :encoding {:theta {:field :value, :type "quantitative" :stack "normalize"}
-              :color {:field :category, :type "nominal"}}
+              :color {:field :category, :type "nominal"
+                      :scale {:range [col-red col-yellow col-green]}
+                      :legend {:labelFontSize 16 :titleFontSize 16}}
+              :order {:field :value :sort "ascending"}}
    :layer [{:mark
             {:type "arc" :outerRadius 110 :tooltip true}}
            {:mark
@@ -135,6 +145,7 @@
             :encoding
             {:text {:field :value :type :quantitative}
              :color {:value "black"}}}]})
+                     
 
  (clerk/vl
   {:data {:values rating-by-year-m}
@@ -145,7 +156,7 @@
                   :stack :normalize
                   :title "%"}
               :x {:field :year}
-              :color {:field :type}}})
+              :color {:field :type :scale {:range [col-red col-yellow col-green]}}}})
 
  (clerk/vl
   {:$schema   "https://vega.github.io/schema/vega-lite/v5.json"
@@ -160,7 +171,7 @@
                          :key    "area"}}]
 
    :mark     "geoshape"
-   :encoding {:color {:field "percentage-positive" :type "quantitative"}}}))
+   :encoding {:color {:field "percentage-positive" :type "quantitative" :scale {:scheme "tealblues"}}}}))
 
 (def rating-by-residents-present
   (-> DS_joined_sentiment
@@ -359,7 +370,7 @@
                :fontSizeRange [12, 56]
                :padding       2}]}]})
 
-(defn word-cloud-2 [data]
+(defn word-cloud-positive [data]
  {:$schema "https://vega.github.io/schema/vega/v5.json"
   :width   800
   :height  400
@@ -372,7 +383,41 @@
   :scales  [{:name   "color"
              :type   "ordinal"
              :domain {:data "table" :field "text"}
-             :range  ["#d5a928", "#652c90", "#939597"]}]
+             :range  ["#009483" "#3937c1" "#0083be"]}]
+  :marks   [{:type   "text"
+             :from   {:data "table"}
+             :encode {:enter
+                      {:text     {:field "text"}
+                       :align    {:value "center"}
+                       :baseline {:value "alphabetic"}
+                       :fill     {:scale "color" :field "text"}}
+                      :update {:fillOpacity {:value 1}}
+                      :hover  {:fillOpacity {:value 0.5}}}
+             :transform
+             [{:type          "wordcloud"
+               :size          [800 400]
+               :text          {:field :text}
+               :rotate        {:field "datum.angle"}
+               :font          "Helvetica Neue, Arial"
+               :fontSize      {:field "datum.size"}
+               :fontSizeRange [12 56]
+               :fontWeight    600
+               :padding       1}]}]})
+
+(defn word-cloud-negative [data]
+ {:$schema "https://vega.github.io/schema/vega/v5.json"
+  :width   800
+  :height  400
+  :padding 0
+  :data    [{:name   "table"
+             :values data
+             :transform
+             [{:type "formula" :as "angle"
+               :expr "[-45, 0, 45][~~(random() * 3)]"}]}]
+  :scales  [{:name   "color"
+             :type   "ordinal"
+             :domain {:data "table" :field "text"}
+             :range  ["#5b68a4" "#c263a8" "#ff696f"]}]
   :marks   [{:type   "text"
              :from   {:data "table"}
              :encode {:enter
@@ -395,7 +440,7 @@
 
 {::clerk/visibility {:result :show}}
 (clerk/vl
- (word-cloud-2 (take 200 positive-keywords-wc)))
+ (word-cloud-positive (take 200 positive-keywords-wc)))
 
 {::clerk/visibility {:result :hide}}
 (def negative-keywords-wc
@@ -407,7 +452,7 @@
 
 {::clerk/visibility {:result :show}}
 (clerk/vl
- (word-cloud-2 negative-keywords-wc))
+ (word-cloud-negative negative-keywords-wc))
 
 ;; ## Phrases
 {::clerk/visibility {:result :hide}}
