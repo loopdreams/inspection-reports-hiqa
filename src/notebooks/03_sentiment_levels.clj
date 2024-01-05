@@ -152,6 +152,7 @@
    :mark {:type "bar" :tooltip true}
    :width 400
    :height 400
+   :title "Sentiment by Year"
    :encoding {:y {:aggregate :sum :field :count
                   :stack :normalize
                   :title "%"}
@@ -193,16 +194,20 @@
  (hc/xform
   ht/bar-chart
   :DATA (-> rating-by-residents-present (tc/rows :as-maps))
-  :X :residents :XTYPE :nominal
-  :Y :percent-positive :YTYPE :quantitative
+  :TITLE "Positive Ratings and No. Residents Present"
+  :X :residents :XTYPE :nominal :XTITLE "Number of Residents Present"
+  :Y :percent-positive :YTYPE :quantitative :YTITLE "% Positive"
+  :WIDTH 600
   :COLOR ht/default-color :CFIELD :num-positive :CTYPE :quantitative))
 
 (clerk/vl
  (hc/xform
   ht/bar-chart
   :DATA (-> rating-by-residents-present (tc/rows :as-maps))
+  :TITLE "Negative Ratings and No. Residents Present"
   :X :residents :XTYPE :nominal
-  :Y :percent-negative :YTYPE :quantitative
+  :Y :percent-negative :YTYPE :quantitative :YTITLE "% Negative"
+  :WIDTH 600
   :COLOR ht/default-color :CFIELD :num-negative :CTYPE :quantitative))
 
 
@@ -280,7 +285,9 @@
    (sort-by val)
    reverse))
 
-(defn sort-words-all-rating [ds type]
+(defn sort-words-all-rating
+  "Type is either :phrases or :keywords"
+  [ds type]
   (->> (ds type)
        (map edn/read-string)
        flatten
@@ -290,7 +297,9 @@
        (remove #(= (first %) "RESIDENTS"))
        (sort-by val)
        reverse))
-       
+
+(comment
+  (sort-words-all-rating DS_sentiment :phrases))
 
 {::clerk/visibility {:result :show}}
 (clerk/md

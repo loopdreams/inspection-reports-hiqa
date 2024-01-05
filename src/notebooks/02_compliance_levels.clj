@@ -216,8 +216,8 @@
                 :as "typeOrder"}]
    :mark {:type "bar" :tooltip true}
    :title title
-   :width 300
-   :height 600
+   :width 350
+   :height 380
    :encoding {:x (if (= type :percentage)
                    {:aggregate :sum :field :val
                     :stack :normalize
@@ -227,7 +227,7 @@
                     :title "Number"})
               :y {:field :regulation
                   :sort "-x"
-                  :title "Regulation"}
+                  :title nil}
               :color {:field :type
                       :sort [ "Non Compliant" "Substantially Compliant" "Fully Compliant"]
                       :title "Compliance Level"}
@@ -469,7 +469,7 @@
                   :title nil}
               :y {:field :provider
                   :sort "-x"
-                  :title "Provider"}
+                  :title nil}
               :color {:field :type
                       :sort [ "Non Compliant" "Substantially Compliant" "Fully Compliant"]
                       :title "Compliance Level"}

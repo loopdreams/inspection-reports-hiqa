@@ -97,9 +97,10 @@
             (tc/order-by "Year" [:desc])
             (tc/rows :as-maps))
   :TITLE "Number of Inspections by Year"
-  :WIDTH 150
+  :WIDTH 100
+  :HEIGHT 400
   :X "Year" :XTYPE :nominal
-  :Y "Inspections" :YTYPE :quantitative))
+  :Y "Inspections" :YTYPE :quantitative :YTITLE "Number of Inspections"))
 
 {::clerk/visibility {:result :hide}}
 (def month-data
@@ -143,14 +144,14 @@
   :data {:values month-data}
   :mark {:type :bar :tooltip true}
   :title "Number of Inspections by Month and Year"
-  :width 600
+  :width 350
   :height 400
   :encoding
   {:x {:field :month
        :type "ordinal"}
    :y {:field :value
        :type "quantitative"
-       :title "Number of Inspections"}
+       :title nil}
    :color {:field :year
            :type "nominal"}}})
 

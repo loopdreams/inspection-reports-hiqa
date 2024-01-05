@@ -46,10 +46,12 @@ Between 2020 and 2023, there were:
 
 For the years 2021 and 2022, the average number of inspections per month was *86*.
 
-#+ATTR_LATEX: :width 6cm :float nil
+#+BEGIN_CENTER
+#+ATTR_LaTeX: :height 0.7\textwidth :center
 [[file:img/01_inspections_by_year.png]]
-
+#+ATTR_LaTeX: :height 0.7\textwidth :center
 [[file:img/02_inspections_by_month.png]]
+#+END_CENTER
 
 * Number of Inspections per Centre
 A significant majority (*78%*) of centres received either 2 or 3 inspections over the period covered by the reports.
@@ -155,8 +157,9 @@ The rate of non-compliant regulations stayed mostly stable at around 10-11% per 
 
 [[file:img/07_compliance_by_year.png]]
 
-** Capacity and Capability
 The most checked capacity and capability regulation across the reports was regulation 23, *governance and management*, which also had the highest rate of non compliance.
+
+The most checked quality and safety regulation across the reports was regulation 27, *protections against infection*. The regulation with the highest rate of non-compliance was regulation 28, *Fire precautions*.
 
 #+caption: Capacity and Capability Regulations NonCompliance Rate 2020-2023
 #+ATTR_LATEX: :environment longtable
@@ -175,10 +178,6 @@ The most checked capacity and capability regulation across the reports was regul
 | Records                                                  |               266 |           13.53 |
 | Notifications of periods when person in charge is absent |                50 |           16.00 |
 
-[[file:img/08_compliance_capacity.png]]
-
-** Quality and Safety
-The most checked quality and safety regulation across the reports was regulation 27, *protections against infection*. The regulation with the highest rate of non-compliance was regulation 28, *Fire precautions*.
 
 #+caption: Quality and Safety Regulations NonCompliance Rate 2020-2023
 #+ATTR_LATEX: :environment longtable
@@ -202,11 +201,15 @@ The most checked quality and safety regulation across the reports was regulation
 | Visits                                                   |               388 |            1.55 |
 | Temporary absence, transition and discharge of residents |               184 |            8.70 |
 
+#+ATTR_LATEX: width \textwidth
+[[file:img/08_compliance_capacity.png]]
+
 [[file:img/09_compliance_quality.png]]
 
 ** Regulation by Provider
 As mentioned above, there were 94 providers tracked across the reports. Below are the aggregate compliance levels for the first 20 providers, ordered by *number of regulations checked*.
 
+#+ATTR_LATEX: :float nil
 [[file:img/10_compliance_providers.png]]
 
 The Top 10 providers by *% full compliance* were:
@@ -505,7 +508,52 @@ There are a couple of major caveats here:
 The total word count across all the observation sections of the reports was approximately *2,550,376* word. The average word count for the observation sections of the reports was *802.26* words.
 
 ** Rating
-** Keywords
+
+*86%* of the inspections received a "positive" rating by the GPT model, based on the text containing observations of the inspections and what the residents said about the centre.
+
+Across inspections in 2021, 2022, and 2023 (the years with most inspections), the percentage of "negatively" rated centres was around *10-11%*.
+
+[[file:img/14_rating_pie.png]]
+
+#+ATTR_LATEX: :width 12cm
+[[file:img/15_rating_year.png]]
+
+[[file:img/16_rating_area.png]]
+
+These ratings also align with average levels of compliance. Centres with a "positive" rating were on average *73%* fully compliant and *7%* not compliant. Centres with a "negative" rating were on average *34%* fully compliant and *43%* not compliant. Therefore, accepting the limitations of this approach, you could conclude from these ratings, based on AI analysis of user feedback, that higher levels of compliance with the HIQA regulations leads to better user experience.
+
+There is also a very tentative alignment between "positive" ratings and "number of residents present". As can be seen below, "positive" sentiment trends slightly downward in the case of more residents.
+
+[[file:img/17_rating_residents_pos.png]]
+
+[[file:img/18_rating_res_neg.png]]
+
+** Keywords and Key Phrases
+
+The top 5 most frequent keywords for centres with a "positive" rating were *support*, *happy*, *comfortable*, *activities*, and *staff*. The top 5 keywords for centres with a "negative" rating were *infection prevention and control*, *compliance*, *improvements*, *staff*, and *support*. As can be seen, the word "staff" features prominently in both "negative" and "positively" rated centres, suggesting that staff are a key feature in shaping sentiment.
+
+The top 10 most frequent key phrases that appeared were:
+
+1. Good quality of life
+2. Improvements were required
+3. Residents were happy
+4. Residents were supported
+5. Residents appeared comfortable
+6. Liked living in the centre
+7. Residents felt safe
+8. Unannounced Inspection
+9. Warm interactions between residents and staff
+10. Clean and tidy
+
+*** Word Clouds
+
+Below is a word cloud for the keywords associated with *positively* rated centres:
+
+[[file:img/19_word_cloud_pos.png]]
+
+A word cloud for the keywords associated with *negatively* rated centres:
+
+[[file:img/20_word_cloud_neg.png]]
 
 ** Summaries
 
