@@ -6,45 +6,11 @@
    [clojure.edn :as edn]
    [clojure.string :as str]
    [hiqa-reports.parsers-writers :as dat]
+   [hiqa-reports.tables :as tables]
+   [hiqa-reports.openai-api :refer [DS_sentiment DS_joined_compliance DS_joined_sentiment]]
    [nextjournal.clerk :as clerk]
    [tablecloth.api :as tc]
    [cheshire.core :as json]))
-
-{::clerk/visibility {:result :hide}}
-(def DS_sentiment (-> (tc/dataset "resources/datasets/created/GPT_responses.csv" {:key-fn keyword})
-                      (tc/drop-missing :report-id)))
-(def DS_joined
-  (-> dat/DS_pdf_info
-      (tc/full-join DS_sentiment :report-id)))
-
-
-(def DS_joined_compliance
-  (-> dat/DS_pdf_info_agg_compliance
-      (tc/full-join DS_sentiment :report-id)))
-
-(comment
-  (filter (fn [[idx v]]
-            (> v 5))
-          (map-indexed vector
-                       (map (comp count read-string)
-                            (-> DS_sentiment
-                                :phrases))))
-  (filter #(nil? (second %)) (map-indexed vector (-> DS_sentiment :phrases)))
-  (remove #(some #{(second %)} ["positive" "negative" "neutral"])
-          (map-indexed vector (-> DS_sentiment
-                                  :rating)))
-
-  (count (-> DS_sentiment :rating))
-  (count (map clojure.edn/read-string (-> DS_sentiment
-                                          :rating)))
-  (filter #(not= 5 (second %)) (map-indexed vector (map (comp count clojure.edn/read-string) (-> DS_sentiment :keywords))))
-
-
-  (nth (-> DS_sentiment
-           :report-id)
-       118))
-
-
 
 ;; # Sentiment Levels
 
@@ -72,7 +38,6 @@
 ;; 2. I am not very familiar with the GPT model, especially questions around how best to formulate the prompt. There were probably better ways to formulate the requests. This exercise was primarily exploratory in nature, therefore a limited amount of time was spent engineering the prompt.
 
 ;; **Information about the text**
-{::clerk/visibility {:result :show}}
 (clerk/md
  (let [obs (-> dat/DS_pdf_info :observations)
        wc (count (str/split (str/join " " obs) #" "))
@@ -116,12 +81,12 @@
                         (assoc :type "neutral")
                         (assoc :count neutral)))))
           []
-          (-> DS_joined
+          (-> DS_joined_sentiment
               (tc/group-by :year)
               :data)))
 
 (def dublin-positive-rating
-  (let [dub-ratings (-> DS_joined
+  (let [dub-ratings (-> DS_joined_sentiment
                         (tc/select-rows #(re-find #"Dublin" (% :address-of-centre)))
                         :rating)
         num-positive (count (filter #(= "positive" %) dub-ratings))
@@ -129,7 +94,7 @@
     {:area "Dublin" :percentage-positive percent-pos}))
 
 (def outside-dub-positive-ratings
-  (-> DS_joined
+  (-> DS_joined_sentiment
       (tc/drop-rows #(re-find #"Dublin" (% :address-of-centre)))
       (tc/group-by :address-of-centre)
       (tc/aggregate {:percentage-positive #(float (/
@@ -198,7 +163,7 @@
    :encoding {:color {:field "percentage-positive" :type "quantitative"}}}))
 
 (def rating-by-residents-present
-  (-> DS_joined
+  (-> DS_joined_sentiment
       (tc/drop-missing :number-of-residents-present)
       (tc/group-by :number-of-residents-present)
       (tc/aggregate {:num-positive #(count (filter (fn [r] (= r "positive")) (% :rating)))
@@ -254,7 +219,7 @@
    :Y :percent-non-com)))
 
 (def rating-by-provider
-  (-> DS_joined
+  (-> DS_joined_sentiment
       (tc/group-by :name-of-provider)
       (tc/aggregate {:num-positive #(count (filter (fn [r] (= r "positive")) (% :rating)))
                      :num-negative #(count (filter (fn [r] (= r "negative")) (% :rating)))
@@ -429,8 +394,8 @@
                :padding       1}]}]})
 
 {::clerk/visibility {:result :show}}
-#_(clerk/vl
-   (word-cloud-2 (take 200 positive-keywords-wc)))
+(clerk/vl
+ (word-cloud-2 (take 200 positive-keywords-wc)))
 
 {::clerk/visibility {:result :hide}}
 (def negative-keywords-wc
@@ -441,8 +406,8 @@
           (sort-words DS_sentiment "negative" :keywords)))
 
 {::clerk/visibility {:result :show}}
-#_(clerk/vl
-   (word-cloud-2 negative-keywords-wc))
+(clerk/vl
+ (word-cloud-2 negative-keywords-wc))
 
 ;; ## Phrases
 {::clerk/visibility {:result :hide}}
@@ -502,3 +467,6 @@
 (clerk/html (random-summary-page (first random-entries)))
 (clerk/html (random-summary-page (second random-entries)))
 (clerk/html (random-summary-page (last random-entries)))
+
+(clerk/table
+ (tables/get-entry-summary DS_joined_compliance 10))

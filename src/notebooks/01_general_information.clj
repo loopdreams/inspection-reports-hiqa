@@ -59,10 +59,28 @@
           (tc/group-by :name-of-provider)
           :name
           count)
-      "** providers."))
+      "** providers."
+      "\n"
+      "- There were **"
+      (reduce +
+              (:total dat/DS_pdf_info_agg_compliance))
+      "** total regulations checked."))
 
 
-(-> dat/DS_pdf_info (tc/info :basic))
+(comment
+  ;; Earliest Report
+  (-> dat/DS_pdf_info
+      :date
+      sort
+      first)
+
+  ;; Latest Report
+  (-> dat/DS_pdf_info
+      :date
+      sort
+      last))
+
+
 
 ;; **Number of Inspections**
 
@@ -579,7 +597,7 @@
                    {:category "Decongregated"  :value decongregated-total-present}]}
    :title "Number of Residents Present"
    :encoding {:theta {:field :value, :type "quantitative" :stack "normalize"},
-              :color {:field :category, :type "nominal"}}
+              :color {:field :category, :type "nominal" :legend {:labelFontSize 14 :titleFontSize 14}}}
    :layer [{:mark
             {:type "arc" :outerRadius 100 :tooltip true}}
            {:mark
@@ -596,7 +614,7 @@
                    {:category "Decongregated"  :value decongregated-max}]}
    :title "Maximum Occupancy (HIQA Register)"
    :encoding {:theta {:field :value, :type "quantitative" :stack "normalize"}
-              :color {:field :category, :type "nominal"}}
+              :color {:field :category, :type "nominal" :legend {:labelFontSize 14 :titleFontSize 14}}}
    :layer [{:mark
             {:type "arc" :outerRadius 100 :tooltip true}}
            {:mark

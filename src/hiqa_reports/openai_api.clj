@@ -1,11 +1,10 @@
 (ns hiqa-reports.openai-api
   (:require
    [cheshire.core :as json]
-   [notebooks.03-sentiment-levels :refer [DS_joined]]
    [clojure.edn :as edn]
    [clojure.java.io :as io]
    [clojure.string :as str]
-   [hiqa-reports.parsers-writers :refer [DS_pdf_info]]
+   [hiqa-reports.parsers-writers :refer [DS_pdf_info DS_pdf_info_agg_compliance]]
    [tablecloth.api :as tc]
    [wkok.openai-clojure.api :as api]))
 
@@ -13,6 +12,24 @@
 (def responses-dir "GPT_responses/")
 
 (def processed-reports-DB-f-out "resources/datasets/created/GPT_responses.csv")
+
+
+;; DB OUTPUT
+
+(def DS_sentiment
+  (-> (tc/dataset processed-reports-DB-f-out
+                  {:key-fn keyword})
+      (tc/drop-missing :report-id)))
+
+(def DS_joined_sentiment
+  (-> DS_pdf_info
+      (tc/full-join DS_sentiment :report-id)))
+
+(def DS_joined_compliance
+  (-> DS_pdf_info_agg_compliance
+      (tc/full-join DS_sentiment :report-id)))
+
+
 
 (def prompt-parts
   ["Summarize the following text into 5 keywords reflecting the sentiment of the residents. Do not include the word 'residents' as a keyword."
@@ -99,6 +116,9 @@
     (-> (tc/dataset new-DB)
         (tc/write! processed-reports-DB-f-out))))
 
+
+
+
 ;; Build db from responses json files (generated below)
 (comment
   (add-responses-to-db! (str responses-dir "updated_20231231.json")))
@@ -120,7 +140,7 @@
 
 
 (comment
-  (fetch-and-log-response! (update-responses DS_joined) (str responses-dir "updated_20231231.json")))
+  (fetch-and-log-response! (update-responses DS_joined_sentiment) (str responses-dir "updated_20231231.json")))
 
 ;; Fetching responses in batches
 (comment)

@@ -1,45 +1,52 @@
 #+title: Hiqa Inspection Reports - Initial Look
+#+SUBTITLE: Draft Version
 #+LATEX_CLASS: article
 #+LATEX_CLASS_OPTIONS:[a4paper,11pt,twoside]
 #+OPTIONS: toc:t H:3 author:nil
 #+LATEX_HEADER: \usepackage{helvet}
+#+LATEX_HEADER: \usepackage{longtable}
+#+LATEX_HEADER: \usepackage[margin=0.5in]{geometry}
 #+LATEX_HEADER: \renewcommand\familydefault{\sfdefault}
 #+LATEX_HEADER: \setlength{\textheight}{230mm}
 #+LATEX_HEADER: \setlength{\textwidth}{160mm}
-#+LATEX_HEADER: \setlength{\voffset}{-10mm}
 #+LATEX_HEADER: \setlength{\oddsidemargin}{0mm}
 #+LATEX_HEADER: \setlength{\evensidemargin}{0mm}
 #+LATEX_HEADER: \addtolength{\parskip}{0.33\baselineskip}
 #+LATEX_HEADER: \setlength\parindent{0pt}
 #+LATEX_HEADER: \usepackage[inline]{enumitem}
 #+LATEX_HEADER: \setlist{nosep}
-#+LATEX_HEADER: \usepackage[margin=0.5in]{geometry}
-
+#+LaTeX_HEADER: \usepackage[x11names]{xcolor}
+#+LaTeX_HEADER: \hypersetup{linktoc = all, colorlinks = true, urlcolor = DodgerBlue4, citecolor = PaleGreen1, linkcolor = black}
 
 * Context and Method
 The data below was taken from the [[https://www.hiqa.ie/reports-and-publications/inspection-reports][HIQA Inspection Reports]] for Disability Centres, available on their website in =.pdf= format.
 
-Report URLs are listed under pages for [[https://www.hiqa.ie/find-a-centre][centres]] where an inspection has occurred ([[https://www.hiqa.ie/areas-we-work/find-a-centre/st-dominics-services][example]]). Using the HIQA register for disability centres, I was able to get the URLs for the centre pages, and from these, the URLs for all inspection  reports.
+Report URLs are listed under pages for [[https://www.hiqa.ie/find-a-centre][centres]] where an inspection has occurred ([[https://www.hiqa.ie/areas-we-work/find-a-centre/st-dominics-services][example]]). Using the HIQA register for disability centres, it was possible to get the URLs for the centre pages, and from these, the URLs for all inspection  reports.
 
-Reports are written according to a **standard template**, making them relatively easy to parse. I extracted information from the following sections of the reports:
+Reports are written according to a **standard template**, making them relatively easy to parse. For the extraction, four main areas of the report were focused on:
 
-- *'Frontmatter'* area on the first page, including details of the centre id, date of inspection, type of inspection, etc.
+- *"Frontmatter"* area on the first page, including details of the centre id, date of inspection, type of inspection, etc.
 - *Number of residents present* at the time of inspection
 - Levels of *compliance* for the regulations inspected ("Compliant", "Not compliant", "Substantially compliant")
 - The narrative text from the section titled "*What residents told us and what inspectors observed*"
 
 This is not an exhaustive list of information that could be extracted from the reports.
 
-As part of this process 3,179 Inspection Reports were gathered/parsed. This compares with 3,312 that appear to be available on the HIQA website (as at 30th December, 2023). In other words, the data covers about 96% of the Inspection Reports for Disability Centres.
+As part of this process 3,179 Inspection Reports were gathered/parsed. This compares with 3,312 that appear to be available on the HIQA website (as at 30th December, 2023). In other words, the data covers about 96% of the Inspection Reports for Disability Centres. In the case of the field "Number of Residents Present", there were 41 missing entries out of the 3,179 reports. This was not due to the values missing in the reports themselves, but due to the parsing method.
+
+The dates of the reports range from *3^{rd} June 2020* - *18^{th} October 2023*.
 
 * Number of Inspections
-- *1,333* centres
+Between 2020 and 2023, there were:
+
 - *3,179* inspection reports
+- *1,333* centres
 - *94* providers
+- *38,330* total checks for compliance
 
-For the years 2021 and 2022, there were a full set of reports. A full set of reports for 2023 has not been published yet (most recent is from October 2023). For 2021 and 2022, the average number of inspections per month was *86*.
+For the years 2021 and 2022, the average number of inspections per month was *86*.
 
-#+ATTR_LATEX: :width 7cm
+#+ATTR_LATEX: :width 7cm :float nil
 [[file:img/01_inspections_by_year.png]]
 
 [[file:img/02_inspections_by_month.png]]
@@ -48,6 +55,7 @@ For the years 2021 and 2022, there were a full set of reports. A full set of rep
 A significant majority (*78%*) of centres received either 2 or 3 inspections over the period covered by the reports.
 
 #+caption: Number of Inspections per Centre 2020-2023
+#+ATTR_LATEX: :environment longtable
 | Number of Inspections | Number of Centres |
 |-----------------------+-------------------|
 |                     1 |               168 |
@@ -58,8 +66,8 @@ A significant majority (*78%*) of centres received either 2 or 3 inspections ove
 |                     6 |                 6 |
 |                     7 |                 1 |
 
-
 #+caption: Number of Inspections per Centre by Year
+#+ATTR_LATEX: :environment longtable
 | Year | 1 Inspection | 2 Inspections | 3 Inspections |
 |------+--------------+---------------+---------------|
 | 2020 |          367 |             6 |             1 |
@@ -72,26 +80,27 @@ A significant majority (*78%*) of centres received either 2 or 3 inspections ove
 The number of residents present at the time of inspection is highly contingent, so any clear line drawn between 'number of residents present' and actual 'occupancy' level of the centres is difficult. For example, there were 19 centres with '0' residents present at time of inspection. The HIQA register also lists *maximum occupancy* for a centre. Therefore, the true 'number of residents' would be somewhere between residents present for the inspection and maximum occupancy. To complicate things further, there were a number of centres which had /more/ residents present compared to the 'maximum occupancy' as listed in the HIQA register, for example, [[https://www.hiqa.ie/areas-we-work/find-a-centre/grove-1][see this centre and corresponding inspection report]].
 
 Figures relating to 'number of residents present' were taken from the /most recent/ inspection report where there were multiple inspections per centre.
-
 - The total number of residents present across the reports was *7,515*
 - The total maximum occupancy according to the HIQA register is *9,126*
-
-
 ** Distribution - Residents Present and Maximum Occupancy
-
 The majority of centres had *4* residents present at time of inspection.
 
+#+ATTR_LATEX: :width 10cm :float nil
 [[file:img/03_no_residents_dist.png]]
-
+#+ATTR_LATEX: :width 10cm :float nil
 [[file:img/04_max_occupancy_dist.png]]
-
 ** Congregated and Decongregated Settings
-
 Based on 'number of residents present', *70%* of people lived in decongregated settings. Based on the HIQA register, *66%* of the maximum occupancy is related to decongregated settings.
 
 This corresponds to *163* (*14%*) congregated centres and *1,169* decongregated centers aligned to 'number of residents present', and *218* congregated centres and *1,353* decongregated centres according to the HIQA register 'maximum occupancy'
 
-TODO-Graphs
+#+BEGIN_CENTER
+#+ATTR_LaTeX: :height 0.3\textwidth :center
+[[file:img/05_num_residents_congregated.png]]
+#+ATTR_LaTeX: :height 0.3\textwidth :center
+[[file:img/06_max_occ_congregated.png]]
+#+END_CENTER
+
 * Compliance Levels
 There are 32 regulations that can be checked as part of inspections. Not every inspection checks for compliance against all regulations. On average, *12* regulations were checked per inspection. Compliance is listed as either "Compliant", "Substantially compliant" or "Not compliant".
 
@@ -133,10 +142,10 @@ The following regulations relate to *Quality and Safety*:
 - Regulation 28: Fire precautions
 - Regulation 29: Medicines and pharmaceutical services
 
-** By Year
-
 The rate of non-compliant regulations stayed mostly stable at around 10-11% per year.
 
+#+caption: Regulation Compliance by Year
+#+ATTR_LATEX: :environment longtable :placement [!H]
 | Year | Compliant | Substantially compliant | Not compliant |
 |------+-----------+-------------------------+---------------|
 | 2023 |      6020 |                    1615 |           941 |
@@ -146,99 +155,95 @@ The rate of non-compliant regulations stayed mostly stable at around 10-11% per 
 
 [[file:img/07_compliance_by_year.png]]
 
-** By Regulation
-*** Capacity and Capability
-
+** Capacity and Capability
 The most checked capacity and capability regulation across the reports was regulation 23, *governance and management*, which also had the highest rate of non compliance.
 
-C = Compliant
-SC = Substantially compliant
-NC = Not compliant
-|                                                          |      |     |     |       |       |
-| Regulation                                               |    C |  SC |  NC | Total |  % NC |
-|----------------------------------------------------------+------+-----+-----+-------+-------|
-| Governance and management                                | 1339 | 763 | 546 |  2648 | 20.62 |
-| Staffing                                                 | 1680 | 530 | 320 |  2530 | 12.65 |
-| Training and staff development                           | 1353 | 710 | 204 |  2267 |  9.00 |
-| Person in charge                                         | 1528 |  42 |  46 |  1616 |  2.85 |
-| Notification of incidents                                | 1132 |  72 | 294 |  1498 | 19.63 |
-| Statement of purpose                                     | 1160 | 231 |  33 |  1424 |  2.32 |
-| Complaints procedure                                     |  892 | 126 |  64 |  1082 |  5.91 |
-| Admissions and contract for the provision of services    |  375 | 135 |  87 |   597 | 14.57 |
-| Directory of residents                                   |  362 |  40 |   7 |   409 |  1.71 |
-| Written policies and procedures                          |  188 | 106 |  39 |   333 | 11.71 |
-| Records                                                  |  124 | 106 |  36 |   266 | 13.53 |
-| Notifications of periods when person in charge is absent |   41 |   1 |   8 |    50 | 16.00 |
+#+caption: Capacity and Capability Regulations NonCompliance Rate 2020-2023
+#+ATTR_LATEX: :environment longtable
+| Regulation                                               | Total Inspections | % Not Compliant |
+|----------------------------------------------------------+-------------------+-----------------|
+| Governance and management                                |              2648 |           20.62 |
+| Staffing                                                 |              2530 |           12.65 |
+| Training and staff development                           |              2267 |            9.00 |
+| Person in charge                                         |              1616 |            2.85 |
+| Notification of incidents                                |              1498 |           19.63 |
+| Statement of purpose                                     |              1424 |            2.32 |
+| Complaints procedure                                     |              1082 |            5.91 |
+| Admissions and contract for the provision of services    |               597 |           14.57 |
+| Directory of residents                                   |               409 |            1.71 |
+| Written policies and procedures                          |               333 |           11.71 |
+| Records                                                  |               266 |           13.53 |
+| Notifications of periods when person in charge is absent |                50 |           16.00 |
 
 [[file:img/08_compliance_capacity.png]]
 
-*** Quality and Safety
-
+** Quality and Safety
 The most checked quality and safety regulation across the reports was regulation 27, *protections against infection*. The regulation with the highest rate of non-compliance was regulation 28, *Fire precautions*.
 
-C = Compliant
-SC = Substantially compliant
-NC = Not compliant
-
-| Regulation                                               |    C |  SC |  NC | Total |  % NC |
-|----------------------------------------------------------+------+-----+-----+-------+-------|
-| Protections against infection                            | 1576 | 872 | 327 |  2775 | 11.78 |
-| Protection                                               | 1842 | 249 | 204 |  2295 |  8.89 |
-| Individualised assessment and personal plan              | 1482 | 538 | 216 |  2236 |  9.66 |
-| Risk management procedures                               | 1381 | 563 | 179 |  2123 |  8.43 |
-| Fire precautions                                         | 1055 | 660 | 406 |  2121 | 19.14 |
-| Premises                                                 |  936 | 798 | 343 |  2077 | 16.51 |
-| Positive behaviour support                               | 1206 | 428 | 166 |  1800 |  9.22 |
-| Healthcare                                               | 1521 | 185 |  48 |  1754 |  2.74 |
-| Residents' rights                                        | 1251 | 210 | 200 |  1661 | 12.04 |
-| General welfare and development                          |  819 | 118 |  70 |  1007 |  6.95 |
-| Medicines and pharmaceutical services                    |  381 | 154 |  74 |   609 | 12.15 |
-| Communication                                            |  505 |  52 |   8 |   565 |  1.42 |
-| Information for residents                                |  510 |  35 |   2 |   547 |  0.37 |
-| Food and nutrition                                       |  393 |  44 |  12 |   449 |  2.67 |
-| Personal possessions                                     |  249 |  93 |  69 |   411 | 16.79 |
-| Visits                                                   |  367 |  15 |   6 |   388 |  1.55 |
-| Temporary absence, transition and discharge of residents |  158 |  10 |  16 |   184 |  8.70 |
+#+caption: Quality and Safety Regulations NonCompliance Rate 2020-2023
+#+ATTR_LATEX: :environment longtable
+| Regulation                                               | Total Inspections | % Not Compliant |
+|----------------------------------------------------------+-------------------+-----------------|
+| Protections against infection                            |              2775 |           11.78 |
+| Protection                                               |              2295 |            8.89 |
+| Individualised assessment and personal plan              |              2236 |            9.66 |
+| Risk management procedures                               |              2123 |            8.43 |
+| Fire precautions                                         |              2121 |           19.14 |
+| Premises                                                 |              2077 |           16.51 |
+| Positive behaviour support                               |              1800 |            9.22 |
+| Healthcare                                               |              1754 |            2.74 |
+| Residents' rights                                        |              1661 |           12.04 |
+| General welfare and development                          |              1007 |            6.95 |
+| Medicines and pharmaceutical services                    |               609 |           12.15 |
+| Communication                                            |               565 |            1.42 |
+| Information for residents                                |               547 |            0.37 |
+| Food and nutrition                                       |               449 |            2.67 |
+| Personal possessions                                     |               411 |           16.79 |
+| Visits                                                   |               388 |            1.55 |
+| Temporary absence, transition and discharge of residents |               184 |            8.70 |
 
 [[file:img/09_compliance_quality.png]]
 
-** By Provider
-
-As mentioned above, there were 94 providers tracked across the reports. Below are the first 20 providers, ordered by *number of regulations checked*.
+** Regulation by Provider
+As mentioned above, there were 94 providers tracked across the reports. Below are the aggregate compliance levels for the first 20 providers, ordered by *number of regulations checked*.
 
 [[file:img/10_compliance_providers.png]]
 
-The Top 10 providers by *% full compliance* are:
+The Top 10 providers by *% full compliance* were:
 
-| Provider                                                            | Total Regs Checked | % Full Compliant |
-|---------------------------------------------------------------------+--------------------+------------------|
-| The Multiple Sclerosis Society of Ireland                           |                 13 |            100.0 |
-| MyLife by Estrela Hall Limited                                      |                 87 |             95.8 |
-| St. Paul's Child and Family Care Centre Designated Activity Company |                 97 |             91.4 |
-| Lorrequer House                                                     |                 33 |             90.8 |
-| Prosper Fingal Company Limited by Guarantee                         |                 93 |             87.6 |
-| Co Wexford Community Workshop (Enniscorthy) CLG                     |                 76 |             84.6 |
-| The Anne Sullivan Centre CLG                                        |                 36 |             81.1 |
-| St Aidan's Day Care Centre Company Limited by Guarantee             |                103 |             80.9 |
-| Gheel Autism Services Company Limited by Guarantee                  |                112 |             79.0 |
-| Terra Glen Residential Care Services Limited                        |                 52 |             78.9 |
-|                                                                     |                    |                  |
+#+caption: Providers - % Full Compliance
+#+ATTR_LATEX: :environment longtable :align p{10cm}|r|r
+| Provider                                                            | Total Checked | % Fully Compliant |
+|---------------------------------------------------------------------+---------------+-------------------|
+| The Multiple Sclerosis Society of Ireland                           |            13 |             100.0 |
+| MyLife by Estrela Hall Limited                                      |            87 |              95.8 |
+| St. Paul's Child and Family Care Centre Designated Activity Company |            97 |              91.4 |
+| Lorrequer House                                                     |            33 |              90.8 |
+| Prosper Fingal Company Limited by Guarantee                         |            93 |              87.6 |
+| Co Wexford Community Workshop (Enniscorthy) CLG                     |            76 |              84.6 |
+| The Anne Sullivan Centre CLG                                        |            36 |              81.1 |
+| St Aidan's Day Care Centre Company Limited by Guarantee             |           103 |              80.9 |
+| Gheel Autism Services Company Limited by Guarantee                  |           112 |              79.0 |
+| Terra Glen Residential Care Services Limited                        |            52 |              78.9 |
+|                                                                     |               |                   |
 
-The Top 10 providers by *% full compliance where there were > 200 regulations checked* are:
+The Top 10 providers by *% full compliance where there were > 200 regulations checked* were:
 
-| Provider                                                            | Total Regs Checked | % Full Compliant |
-|---------------------------------------------------------------------+--------------------+------------------|
-| GALRO Unlimited Company                                             |                473 |             77.4 |
-| Talbot Care Unlimited Company                                       |                521 |             73.2 |
-| RehabCare                                                           |                769 |             72.7 |
-| Dundas Unlimited Company                                            |                393 |             70.1 |
-| Nua Healthcare Services Limited                                     |               1814 |             70.1 |
-| Western Care Association                                            |                506 |             68.8 |
-| Praxis Care                                                         |                634 |             66.1 |
-| Daughters of Charity Disability Support Services CLG                |               1222 |             63.9 |
-| Muiríosa Foundation                                                 |               1515 |             63.0 |
-| KARE, Promoting Inclusion for People with Intellectual Disabilities |                396 |             62.5 |
-|                                                                     |                    |                  |
+#+caption: Providers - % Full Compliance > 200 Inspections
+#+ATTR_LATEX: :environment longtable :align p{10cm}|r|r
+| Provider                                                            | Total Checked | % Fully Compliant |
+|---------------------------------------------------------------------+---------------+-------------------|
+| GALRO Unlimited Company                                             |           473 |              77.4 |
+| Talbot Care Unlimited Company                                       |           521 |              73.2 |
+| RehabCare                                                           |           769 |              72.7 |
+| Dundas Unlimited Company                                            |           393 |              70.1 |
+| Nua Healthcare Services Limited                                     |          1814 |              70.1 |
+| Western Care Association                                            |           506 |              68.8 |
+| Praxis Care                                                         |           634 |              66.1 |
+| Daughters of Charity Disability Support Services CLG                |          1222 |              63.9 |
+| Muiríosa Foundation                                                 |          1515 |              63.0 |
+| KARE, Promoting Inclusion for People with Intellectual Disabilities |           396 |              62.5 |
+|                                                                     |               |                   |
 
 
 As can be seen, *Nua Healthcare* stands out as a provider with both a high level of service and a high level of compliance.
@@ -262,7 +267,6 @@ Indicators of compliance include:
 - the facilities and services in the centre reflect the statement of purpose
 - practice is based on best practice and complies with legislative, regulatory and contractual requirements.
 
-
 Indicators of non-compliance include:
 
 - there are insufficient resources in the centre and the needs of residents are not met
@@ -284,43 +288,425 @@ Indicators of non-compliance include:
 - the registered provider (or nominated person) does not produce a report on the safety and quality of care and support provided in the centre
 - effective arrangements are not in place to support, develop or manage all staff to exercise their responsibilities appropriately.
 
+#+caption: Governance and Management by Year
+#+ATTR_LATEX: :environment longtable
+| Year | Total | % Not Compliant | % Fully Compliant |
+|------+-------+-----------------+-------------------|
+| 2023 |   562 |           21.35 |             48.93 |
+| 2022 |   686 |           19.10 |             49.71 |
+| 2021 |  1018 |           19.74 |             52.95 |
+| 2020 |   382 |           24.61 |             48.17 |
+** By Area
+[[file:img/11_1_reg_23_percent_notitle.png]]
 
-#+caption: Reg 23 % Non Compliant with > 50 inspections (Top 10)
-| Provider Name                                        | Non compliant | % Non compliant |
-|------------------------------------------------------+---------------+-----------------|
-| Camphill Communities of Ireland                      |            29 |            53.7 |
-| COPE Foundation                                      |            40 |            48.8 |
-| Ability West                                         |            23 |            35.9 |
-| Daughters of Charity Disability Support Services CLG |            31 |            35.2 |
-| Stewarts Care Limited                                |            23 |            34.3 |
-| Sunbeam House Services Company Limited by Guarantee  |            15 |            26.8 |
-| Brothers of Charity Services Ireland CLG             |            87 |            25.5 |
-| St Michael's House                                   |            29 |            19.2 |
-| Health Service Executive                             |            52 |            18.1 |
-| Avista CLG                                           |            16 |            16.7 |
-
-#+begin_src clojure :results value raw :exports results
-
-(require '[tablecloth.api :as tc])
-(require '[hiqa-reports.parsers-writers :as dat])
-
-(-> dat/DS_pdf_info_agg_compliance
-    (tc/group-by :name-of-provider)
-    (tc/aggregate {:total #(reduce + (% :total))
-                   "Non compliant"
-                   #(reduce + (% :num-notcompliant))
-                   "Avg % Non compliant"
-                   #(float (/ (reduce + (% :num-notcompliant))
-                              (reduce + (% :total))))})
-    (tc/select-rows #(< 200 (% :total)))
-    (tc/rename-columns {:$group-name "Provider"})
-    (tc/drop-columns :total)
-    (tc/order-by "Avg % Non compliant" :desc)
-    (tc/select-rows (range 10))
-    (tc/set-dataset-name "% Non Compliance with > 200 Regulations Checked"))
+:TODO: Include Totals here...
+#+caption: Governance and Management % Not Compliant (Dublin Grouped)
+#+ATTR_LATEX: :environment longtable
+| Address of Centre | % Not compliant |
+|-------------------+-----------------|
+| Kilkenny          |           37.88 |
+| Cork              |           32.85 |
+| Roscommon         |           30.00 |
+| Clare             |           29.33 |
+| Monaghan          |           27.50 |
+| Wexford           |           25.71 |
+| Limerick          |           24.29 |
+| Longford          |           23.81 |
+| Waterford         |           23.68 |
+| Dublin            |           23.38 |
+| ...               |             ... |
+| Galway            |           18.99 |
+| Cavan             |           18.75 |
+| Carlow            |           18.52 |
+| Westmeath         |           17.82 |
+| Meath             |           15.79 |
+| Louth             |           12.31 |
+| Kildare           |           10.67 |
+| Leitrim           |            4.76 |
+| Sligo             |            4.30 |
+| Laois             |            3.51 |
+| Mayo              |            3.13 |
 
 
-#+end_src
-* Sentiment (GPT/Experimental)
+#+caption: Governance and Management % Not Compliant (Dublin Ungrouped)
+#+ATTR_LATEX: :environment longtable
+| Address of Centre | % Not compliant |
+|-------------------+-----------------|
+| Dublin 17         |           66.67 |
+| Dublin 4          |           50.00 |
+| Dublin 10         |           50.00 |
+| Dublin 15         |           42.62 |
+| Dublin 8          |           40.00 |
+| Kilkenny          |           37.88 |
+| Dublin 20         |           34.21 |
+| Cork              |           32.85 |
+| Dublin 13         |           30.77 |
+| Roscommon         |           30.00 |
+| ...               |             ... |
+| Co. Dublin        |            9.52 |
+| Dublin 16         |            7.14 |
+| Dublin 24         |            7.14 |
+| Dublin 9          |            6.12 |
+| Leitrim           |            4.76 |
+| Sligo             |            4.30 |
+| Laois             |            3.51 |
+| Mayo              |            3.13 |
+| Dublin 11         |            0.00 |
+| Dublin 12         |            0.00 |
+| Dublin 6          |            0.00 |
+
+
+#+caption: Governance and Management - 2023 Only
+| Address   | Total Inspections | % Not Compliant | % Compliant |
+|-----------+-------------------+-----------------+-------------|
+| Galway    |                41 |           51.22 |       34.15 |
+| Cork      |                54 |           46.30 |        9.26 |
+| Roscommon |                 8 |           37.50 |       25.00 |
+| Kilkenny  |                26 |           34.62 |       34.62 |
+| Clare     |                18 |           33.33 |       55.56 |
+| Dublin 6w |                 6 |           33.33 |       33.33 |
+| Dublin 7  |                 6 |           33.33 |       50.00 |
+| Dublin 5  |                 4 |           25.00 |       50.00 |
+| Limerick  |                35 |           22.86 |       45.71 |
+| Dublin 20 |                 9 |           22.22 |       66.67 |
+| ...       |           .   ... |             ... |         ... |
+| Dublin 22 |                 3 |            0.00 |       66.67 |
+| Dublin 11 |                 2 |            0.00 |       50.00 |
+| Kerry     |                14 |            0.00 |       71.43 |
+| Dublin 9  |                 7 |            0.00 |       71.43 |
+| Dublin 13 |                 1 |            0.00 |      100.00 |
+| Dublin 24 |                 6 |            0.00 |       66.67 |
+| Carlow    |                 5 |            0.00 |       80.00 |
+| Dublin 14 |                 5 |            0.00 |      100.00 |
+| Dublin 8  |                 1 |            0.00 |        0.00 |
+| Dublin 3  |                 2 |            0.00 |      100.00 |
+| Dublin 16 |                 0 |            0.00 |        0.00 |
+
+** By Provider
+
+- C = Compliant
+- SC = Substantially compliant
+- NC = Not compliant
+
+*** Highest % Fully Compliant
+| Provider                                                    | C | NC | SC | % Fully compliant |
+|-------------------------------------------------------------+---+----+----+-------------------|
+| Dara Residential Services                                   | 9 |  0 |  0 |             100.0 |
+| Co Wexford Community Workshop (Enniscorthy) CLG             | 6 |  0 |  0 |             100.0 |
+| MyLife by Estrela Hall Limited                              | 6 |  0 |  0 |             100.0 |
+| Redwood Neurobehavioural Services Unlimited Company         | 4 |  0 |  0 |             100.0 |
+| Lorrequer House                                             | 2 |  0 |  0 |             100.0 |
+| The Anne Sullivan Centre CLG                                | 2 |  0 |  0 |             100.0 |
+| St. Aidan's Day Care Centre Company Limited by Guarantee    | 1 |  0 |  0 |             100.0 |
+| Positive Futures: Achieving Dreams. Transforming Lives. CLG | 1 |  0 |  0 |             100.0 |
+| IRL-IASD CLG                                                | 1 |  0 |  0 |             100.0 |
+| The Multiple Sclerosis Society of Ireland                   | 1 |  0 |  0 |             100.0 |
+*** Highest % Full Compliant with > 50 Inspections
+
+| Provider                                 | Total | % Not compliant | % Fully compliant |
+|------------------------------------------+-------+-----------------+-------------------|
+| Nua Healthcare Services Limited          |   128 |             4.7 |              77.3 |
+| St John of God Community Services CLG    |   188 |            11.2 |              68.1 |
+| Muiríosa Foundation                      |    95 |             8.4 |              66.3 |
+| RehabCare                                |    51 |            15.7 |              58.8 |
+| The Rehab Group                          |    63 |            12.7 |              57.1 |
+| St Michael's House                       |   155 |            18.7 |              56.8 |
+| Avista CLG                               |   102 |            18.6 |              48.0 |
+| Stewarts Care Limited                    |    68 |            33.8 |              45.6 |
+| Health Service Executive                 |   303 |            17.5 |              44.9 |
+| Brothers of Charity Services Ireland CLG |   346 |            26.0 |              40.5 |
+
+*** Highest % Not Compliant
+
+| Provider                                                  | Total | % Not compliant |
+|-----------------------------------------------------------+-------+-----------------|
+| Redwood Neurobehavioral Services Unlimited Company        |     1 |           100.0 |
+| Asperger Syndrome Association of Ireland CLG              |     1 |           100.0 |
+| Ard Aoibhinn Community Initiatives CLG                    |     3 |            66.7 |
+| Stepping Stones Residential Care Limited                  |     7 |            57.1 |
+| Camphill Communities of Ireland                           |    55 |            52.7 |
+| Saint Patrick's Centre (Kilkenny)                         |    10 |            50.0 |
+| Bradbury House Ireland Limited                            |     2 |            50.0 |
+| Peacehaven Trust CLG                                      |     2 |            50.0 |
+| St Catherine's Association CLG                            |     2 |            50.0 |
+| MooreHaven Centre (Tipperary) Designated Activity Company |     2 |            50.0 |
+
+*** Highest % Not Compliant with > 50 Inspections
+
+| Provider                                             | Total | % Not compliant |
+|------------------------------------------------------+-------+-----------------|
+| Camphill Communities of Ireland                      |    55 |            52.7 |
+| COPE Foundation                                      |    83 |            48.2 |
+| Ability West                                         |    69 |            40.6 |
+| Daughters of Charity Disability Support Services CLG |    88 |            35.2 |
+| Stewarts Care Limited                                |    68 |            33.8 |
+| Sunbeam House Services Company Limited by Guarantee  |    56 |            26.8 |
+| Brothers of Charity Services Ireland CLG             |   346 |            26.0 |
+| St Michael's House                                   |   155 |            18.7 |
+| Avista CLG                                           |   102 |            18.6 |
+| Health Service Executive                             |   303 |            17.5 |
+
+* Sentiment (Experimental)
+
+Aggregate 'sentiment' levels were obtained by passing the text contained under the section **What residents told us and what inspectors observed** to =GPT-3.5= for evaluation.
+
+The following prompt was provided:
+
+#+begin_quote
+Summarize the following text into 5 keywords reflecting the sentiment of the residents. Do not include the word 'residents' as a keyword.
+
+Also provide 3 key phrases reflecting the sentiment of the residents
+
+Also assign an overall rating of 'positive', 'negative' or 'neutral' based on these sentiments.
+
+Finally, summarise the text in two sentences.
+#+end_quote
+
+In other words, the following was asked for:
+
+- **rating** (positive/negative/neutral)
+- **keywords** (5)
+- **key phrases** (3)
+- **summary** (2 sentences)
+
+There are a couple of major caveats here:
+
+1. I used the least powerful version of GPT. The cost was around $6.69 for 3,733 requests (this included some trail and error requests at the outset). The next most powerful api (=GPT-4=) would have cost around 30x this.
+2. I am not very familiar with the GPT model, especially questions around how best to formulate the prompt. This exercise was primarily exploratory in nature, therefore a limited amount of time was spent engineering the prompt.
+
+The total word count across all the observation sections of the reports was approximately *2,550,376* word. The average word count for the observation sections of the reports was *802.26* words.
+
 ** Rating
 ** Keywords
+
+** Summaries
+
+Below are some *randomized* examples of GPT "summaries", along with a link to the reports and some additional details for context.
+
+*** Three Randomized reports from 2023
+
+*Summary* :: The residents were busy and active, supported and facilitated in their personalized and suitable home environment. There was a friendly and respectful rapport between the residents and their support team, encouraging independence and positive risk-taking.
+
+[[https://www.hiqa.ie/system/files?file=inspectionreports/1989-morell-28-february-2023.pdf][Full Report Link]]
+
+#+ATTR_LATEX: :environment longtable :align p{11cm}|p{5cm}
+| Area                                                              | Information                                                         |
+|-------------------------------------------------------------------+---------------------------------------------------------------------|
+| Centre id                                                         | 1989                                                                |
+| Date                                                              | 2023-02-28                                                          |
+| Name of provider                                                  | KARE, Promoting Inclusion for People with Intellectual Disabilities |
+| Address of centre                                                 | Kildare                                                             |
+| Number of residents present                                       | 5                                                                   |
+| Type of inspection                                                | Unannounced                                                         |
+| Percent noncompliant                                              | 0.000                                                               |
+| Rating                                                            | positive                                                            |
+| Regulation 27: Protections against infection (Quality and safety) | Substantially compliant                                             |
+
+*Summary* :: The residents of this care center are very happy and speak highly of the supportive staff. The center provides a comfortable and warm living environment, and the staff actively work to maximize residents' social care and independence.
+
+[[https://www.hiqa.ie/system/files?file=inspectionreports/3702-mountain-view-residential-respite-services-16-january-2023.pdf][Full Report Link]]
+
+#+ATTR_LATEX: :environment longtable :align p{11cm}|p{5cm}
+| Heading                                                                         | Information              |
+|---------------------------------------------------------------------------------+--------------------------|
+| Centre id                                                                       | 3702                     |
+| Date                                                                            | 2023-01-16               |
+| Name of provider                                                                | Western Care Association |
+| Address of centre                                                               | Mayo                     |
+| Number of residents present                                                     | 8                        |
+| Type of inspection                                                              | Announced                |
+| Percent noncompliant                                                            | 0.000                    |
+| Rating                                                                          | positive                 |
+| Regulation 08: Protection (Quality and safety)                                  | Compliant                |
+| Regulation 10: Communication (Quality and safety)                               | Compliant                |
+| Regulation 15: Staffing (Capacity and capability)                               | Compliant                |
+| Regulation 05: Individualised assessment and personal plan (Quality and safety) | Compliant                |
+| Regulation 31: Notification of incidents (Capacity and capability)              | Compliant                |
+| Regulation 03: Statement of purpose (Capacity and capability)                   | Compliant                |
+| Regulation 06: Healthcare (Quality and safety)                                  | Compliant                |
+| Regulation 20: Information for residents (Quality and safety)                   | Compliant                |
+| Regulation 28: Fire precautions (Quality and safety)                            | Compliant                |
+| Regulation 09: Residents' rights (Quality and safety)                           | Compliant                |
+| Regulation 07: Positive behaviour support (Quality and safety)                  | Compliant                |
+| Regulation 26: Risk management procedures (Quality and safety)                  | Compliant                |
+| Regulation 16: Training and staff development (Capacity and capability)         | Compliant                |
+| Regulation 23: Governance and management (Capacity and capability)              | Compliant                |
+| Regulation 17: Premises (Quality and safety)                                    | Compliant                |
+| Regulation 11: Visits (Quality and safety)                                      | Compliant                |
+| Regulation 14: Person in charge (Capacity and capability)                       | Compliant                |
+
+*Summary* :: Overall, this inspection found many good care practices that resulted in residents receiving a service in line with their assessed needs.
+
+[[https://www.hiqa.ie/system/files?file=inspectionreports/5680-community-living-area-t-28-august-2023.pdf][Full Report Link]]
+
+#+ATTR_LATEX: :environment longtable :align p{11cm}|p{5cm}
+| Heading                                                                         | Information             |
+|---------------------------------------------------------------------------------+-------------------------|
+| Centre id                                                                       | 5680                    |
+| Date                                                                            | 2023-08-28              |
+| Name of provider                                                                | Muiríosa Foundation     |
+| Address of centre                                                               | Offaly                  |
+| Number of residents present                                                     | 3                       |
+| Type of inspection                                                              | Announced               |
+| Percent noncompliant                                                            | 0.000                   |
+| Rating                                                                          | positive                |
+| Regulation 19: Directory of residents (Capacity and capability)                 | Compliant               |
+| Regulation 08: Protection (Quality and safety)                                  | Compliant               |
+| Regulation 10: Communication (Quality and safety)                               | Compliant               |
+| Regulation 15: Staffing (Capacity and capability)                               | Compliant               |
+| Regulation 05: Individualised assessment and personal plan (Quality and safety) | Compliant               |
+| Regulation 18: Food and nutrition (Quality and safety)                          | Compliant               |
+| Regulation 31: Notification of incidents (Capacity and capability)              | Compliant               |
+| Regulation 03: Statement of purpose (Capacity and capability)                   | Compliant               |
+| Regulation 06: Healthcare (Quality and safety)                                  | Compliant               |
+| Regulation 20: Information for residents (Quality and safety)                   | Compliant               |
+| Regulation 28: Fire precautions (Quality and safety)                            | Compliant               |
+| Regulation 09: Residents' rights (Quality and safety)                           | Compliant               |
+| Regulation 07: Positive behaviour support (Quality and safety)                  | Substantially compliant |
+| Regulation 26: Risk management procedures (Quality and safety)                  | Substantially compliant |
+| Regulation 23: Governance and management (Capacity and capability)              | Compliant               |
+| Regulation 13: General welfare and development (Quality and safety)             | Compliant               |
+| Regulation 17: Premises (Quality and safety)                                    | Compliant               |
+| Regulation 11: Visits (Quality and safety)                                      | Compliant               |
+| Regulation 14: Person in charge (Capacity and capability)                       | Compliant               |
+
+*** Randomized report for a Congregated Setting
+
+*Summary* :: The residents were supportive and enjoyed various activities during the inspection, such as having nail varnish applied and receiving a hand massage. They also expressed their desire to move out of the designated center and have their own apartment.
+
+[[https://www.hiqa.ie/system/files?file=inspectionreports/4745-lios-mor-16-september-2020.pdf][Full Report Link]]
+
+#+ATTR_LATEX: :environment longtable :align p{11cm}|p{5cm}
+| Heading                                                                         | Information                              |
+|---------------------------------------------------------------------------------+------------------------------------------|
+| Centre id                                                                       | 4745                                     |
+| Date                                                                            | 2020-09-16                               |
+| Name of provider                                                                | Brothers of Charity Services Ireland CLG |
+| Address of centre                                                               | Limerick                                 |
+| Number of residents present                                                     | 10                                       |
+| Type of inspection                                                              | Short Notice Announced                   |
+| Percent noncompliant                                                            | 5.263                                    |
+| Rating                                                                          | positive                                 |
+| Regulation 08: Protection (Quality and safety)                                  | Substantially compliant                  |
+| Regulation 27: Protections against infection (Quality and safety)               | Substantially compliant                  |
+| Regulation 10: Communication (Quality and safety)                               | Compliant                                |
+| Regulation 15: Staffing (Capacity and capability)                               | Compliant                                |
+| Regulation 34: Complaints procedure (Capacity and capability)                   | Compliant                                |
+| Regulation 05: Individualised assessment and personal plan (Quality and safety) | Compliant                                |
+| Regulation 31: Notification of incidents (Capacity and capability)              | Not compliant                            |
+| Regulation 03: Statement of purpose (Capacity and capability)                   | Compliant                                |
+| Regulation 06: Healthcare (Quality and safety)                                  | Compliant                                |
+| Regulation 20: Information for residents (Quality and safety)                   | Compliant                                |
+| Regulation 28: Fire precautions (Quality and safety)                            | Substantially compliant                  |
+| Regulation 09: Residents' rights (Quality and safety)                           | Compliant                                |
+| Regulation 07: Positive behaviour support (Quality and safety)                  | Compliant                                |
+| Regulation 26: Risk management procedures (Quality and safety)                  | Substantially compliant                  |
+| Regulation 16: Training and staff development (Capacity and capability)         | Compliant                                |
+| Regulation 23: Governance and management (Capacity and capability)              | Compliant                                |
+| Regulation 13: General welfare and development (Quality and safety)             | Compliant                                |
+| Regulation 11: Visits (Quality and safety)                                      | Compliant                                |
+| Regulation 14: Person in charge (Capacity and capability)                       | Compliant                                |
+
+*** Randomized report for an inspection with a 'negative' GPT rating
+
+*Summary* :: The residents have positive and active lifestyles. However, the inspection found issues with falls hazards, risk management, and staffing arrangements.
+
+[[https://www.hiqa.ie/system/files?file=inspectionreports/1495-ocean-wave-services-04-july-2023.pdf][Full Report Link]]
+
+
+#+ATTR_LATEX: :environment longtable :align p{11cm}|p{5cm}
+| Heading                                                                         | Information   |
+|---------------------------------------------------------------------------------+---------------|
+| Centre id                                                                       | 1495          |
+| Date                                                                            | 2023-07-04    |
+| Name of provider                                                                | Ability West  |
+| Address of centre                                                               | Galway        |
+| Number of residents present                                                     | 4             |
+| Type of inspection                                                              | Unannounced   |
+| Percent noncompliant                                                            | 60.00         |
+| Rating                                                                          | negative      |
+| Regulation 15: Staffing (Capacity and capability)                               | Not compliant |
+| Regulation 14: Person in charge (Capacity and capability)                       | Compliant     |
+| Regulation 05: Individualised assessment and personal plan (Quality and safety) | Compliant     |
+| Regulation 23: Governance and management (Capacity and capability)              | Not compliant |
+| Regulation 26: Risk management procedures (Quality and safety)                  | Not compliant |
+*** Randomized report for a centre with > 50% non compliance
+
+*Summary* :: The residents expressed a mixed sentiment about the center, with some enjoying their time there and others lamenting the restrictions due to COVID-19. Inspectors found shortcomings in infection prevention measures, including incorrect use of face masks and expired alcohol gel bottles. The overall rating is negative, as improvements are needed in various areas.
+
+[[https://www.hiqa.ie/system/files?file=inspectionreports/2036-ard-na-mara-15-february-2022.pdf][Full Report Link]]
+
+
+#+ATTR_LATEX: :environment longtable :align p{11cm}|p{5cm}
+| Heading                                                           | Information                                |
+|-------------------------------------------------------------------+--------------------------------------------|
+| Centre id                                                         | 2036                                       |
+| Date                                                              | 2022-02-15                                 |
+| Name of provider                                                  | Enable Ireland Disability Services Limited |
+| Address of centre                                                 | Cork                                       |
+| Number of residents present                                       | 5                                          |
+| Type of inspection                                                | Unannounced                                |
+| Percent noncompliant                                              | 100.0                                      |
+| Rating                                                            | negative                                   |
+| Regulation 27: Protections against infection (Quality and safety) | Not compliant                              |
+
+*** Randomized report for a centre with 'staffing' keyword and 'negative' rating
+
+*Summary* :: Residents were generally happy living in the centre and felt safe, but there were areas that required improvement. These included premises, restrictive practices, staffing, and management arrangements.
+
+[[https://www.hiqa.ie/system/files?file=inspectionreports/7820-tonyglassion-group-home-28-january-2021.pdf][Full Report Link]]
+
+
+#+ATTR_LATEX: :environment longtable :align p{11cm}|p{5cm}
+| Heading                                                                 | Information              |
+|-------------------------------------------------------------------------+--------------------------|
+| Centre id                                                               | 7820                     |
+| Date                                                                    | 2021-01-28               |
+| Name of provider                                                        | Health Service Executive |
+| Address of centre                                                       | Monaghan                 |
+| Number of residents present                                             | 5                        |
+| Type of inspection                                                      | Short Notice Announced   |
+| Percent noncompliant                                                    | 41.67                    |
+| Rating                                                                  | negative                 |
+| Regulation 08: Protection (Quality and safety)                          | Compliant                |
+| Regulation 27: Protections against infection (Quality and safety)       | Compliant                |
+| Regulation 15: Staffing (Capacity and capability)                       | Not compliant            |
+| Regulation 34: Complaints procedure (Capacity and capability)           | Compliant                |
+| Regulation 31: Notification of incidents (Capacity and capability)      | Compliant                |
+| Regulation 28: Fire precautions (Quality and safety)                    | Substantially compliant  |
+| Regulation 09: Residents' rights (Quality and safety)                   | Not compliant            |
+| Regulation 07: Positive behaviour support (Quality and safety)          | Not compliant            |
+| Regulation 16: Training and staff development (Capacity and capability) | Compliant                |
+| Regulation 23: Governance and management (Capacity and capability)      | Not compliant            |
+| Regulation 17: Premises (Quality and safety)                            | Not compliant            |
+| Regulation 14: Person in charge (Capacity and capability)               | Compliant                |
+
+*** Randomized report for a centre with 'staffing' keyword and 'positive' rating
+
+*Summary* :: The residents expressed satisfaction with the improvements in staffing and assessment arrangements at the center. However, they also mentioned the need for further improvements in risk management and governance. Overall, the residents had a positive experience and appreciated the efforts of the staff to meet their changing needs, although they highlighted the need for improvements to the premises.
+
+[[https://www.hiqa.ie/system/files?file=inspectionreports/1495-ocean-wave-services-18-january-2023.pdf][Full Report Link]]
+
+
+#+ATTR_LATEX: :environment longtable :align p{11cm}|p{5cm}
+| Heading                                                                         | Information   |
+|---------------------------------------------------------------------------------+---------------|
+| Centre id                                                                       | 1495          |
+| Date                                                                            | 2023-01-18    |
+| Name of provider                                                                | Ability West  |
+| Address of centre                                                               | Galway        |
+| Number of residents present                                                     | 4             |
+| Type of inspection                                                              | Unannounced   |
+| Percent noncompliant                                                            | 27.27         |
+| Rating                                                                          | positive      |
+| Regulation 10: Communication (Quality and safety)                               | Compliant     |
+| Regulation 15: Staffing (Capacity and capability)                               | Compliant     |
+| Regulation 05: Individualised assessment and personal plan (Quality and safety) | Compliant     |
+| Regulation 31: Notification of incidents (Capacity and capability)              | Compliant     |
+| Regulation 06: Healthcare (Quality and safety)                                  | Compliant     |
+| Regulation 28: Fire precautions (Quality and safety)                            | Compliant     |
+| Regulation 26: Risk management procedures (Quality and safety)                  | Not compliant |
+| Regulation 23: Governance and management (Capacity and capability)              | Not compliant |
+| Regulation 17: Premises (Quality and safety)                                    | Not compliant |
+| Regulation 11: Visits (Quality and safety)                                      | Compliant     |
+| Regulation 14: Person in charge (Capacity and capability)                       | Compliant     |

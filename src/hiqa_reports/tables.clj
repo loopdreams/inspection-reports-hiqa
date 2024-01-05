@@ -1,6 +1,7 @@
 (ns hiqa-reports.tables
   (:require
    [hiqa-reports.parsers-writers :as dat]
+   [hiqa-reports.openai-api :refer [DS_joined_compliance]]
    [clojure.set :as set]
    [clojure.string :as str]
    [tablecloth.api :as tc]))
@@ -173,9 +174,9 @@
 (defn observations-by-report-id [entries]
   (reduce #(assoc %1 (keyword (:report-id %2)) (:observations %2)) {} entries))
 
-(def stopwords
-  (str/split-lines
-   (slurp "https://gist.githubusercontent.com/sebleier/554280/raw/7e0e4a1ce04c2bb7bd41089c9821dbcf6d0c786c/NLTK's%2520list%2520of%2520english%2520stopwords")))
+#_(def stopwords
+    (str/split-lines
+     (slurp "https://gist.githubusercontent.com/sebleier/554280/raw/7e0e4a1ce04c2bb7bd41089c9821dbcf6d0c786c/NLTK's%2520list%2520of%2520english%2520stopwords")))
 
 ;; (reverse
 ;;  (sort-by val
@@ -188,3 +189,129 @@
 ;;                           #"\.|," "")
 ;;                          #"\s+"))))))
 
+
+;; Row Summary Table
+
+(defn kw->plaintext [kw]
+  (-> kw
+      name
+      (str/replace #"-" " ")
+      (str/capitalize)))
+
+
+(defn reg-keyword->name [kw]
+  (let [num (parse-long (re-find #"\d+" (name kw)))
+        area (if ((:capacity-and-capability dat/hiqa-regulations) num)
+               :capacity-and-capability
+               :quality-and-safety)
+        name ((area dat/hiqa-regulations) num)
+        num-str (if (> num 9)
+                  (str num)
+                  (str "0" num))]
+    (str "Regulation " num-str ": " name " (" (kw->plaintext area) ")")))
+
+
+
+(name :capacity-and-capability)
+(reg-keyword->name :Regulation_8)
+
+(defn regskw->regstext [regs-m]
+  (let [names (map reg-keyword->name (keys regs-m))]
+    (zipmap names (vals regs-m))))
+
+
+
+(defn get-entry-summary [ds & n]
+  (let [n           (if n (first n)
+                        (rand-nth (range 0 (tc/row-count ds))))
+        row         (-> ds (tc/select-rows n))
+        info        (-> row
+                        (tc/select-columns
+                         [:report-URL
+                          :summary
+                          :centre-id
+                          :date
+                          :name-of-provider
+                          :address-of-centre
+                          :number-of-residents-present
+                          :type-of-inspection
+                          :percent-noncompliant
+                          :rating])
+                        (tc/rows :as-maps)
+                        first)
+        regulations (-> row
+                        (tc/select-columns #":Regulation.*")
+                        (tc/rows :as-maps {:nil-missing? false})
+                        first
+                        regskw->regstext)
+        data        (merge info regulations)]
+    (for [entry data]
+      {"Heading"        (if (keyword? (key entry))
+                          (kw->plaintext (key entry))
+                          (key entry))
+       "Information" (val entry)})))
+
+(defn summary->console
+  "Spliting table, just to make easier for copy/paste"
+  [summary-m]
+  (let [ds (tc/dataset summary-m)]
+    (tc/print-dataset ds {:print-index-range (range 0 1) :print-line-policy :markdown})
+    (tc/print-dataset ds {:print-index-range (range 1 2) :print-line-policy :markdown})
+    (tc/print-dataset ds {:print-index-range (range 2 50) :print-line-policy :markdown})))
+
+;; Examples:
+;;
+;; Random 'Negative Rating' Summary
+(comment
+  (-> DS_joined_compliance
+      (tc/select-rows #(= (% :rating) "negative"))
+      get-entry-summary
+      summary->console))
+
+;; Random 'congregated' summary
+(comment
+  (-> DS_joined_compliance
+      (tc/drop-missing :number-of-residents-present)
+      (tc/select-rows #(> (% :number-of-residents-present) 9))
+      get-entry-summary
+      summary->console))
+
+;; Random 2023 summary
+(comment
+  (-> DS_joined_compliance
+      (tc/select-rows #(= 2023 (% :year)))
+      get-entry-summary
+      summary->console))
+
+;; Random Nua Healthcare Summary
+(comment
+  (-> DS_joined_compliance
+      (tc/select-rows #(= "Nua Healthcare Services Limited"
+                          (% :name-of-provider)))
+      get-entry-summary
+      summary->console))
+
+;; Random with >50% noncompliance
+(comment
+  (-> DS_joined_compliance
+      (tc/select-rows #(< 50 (% :percent-noncompliant)))
+      get-entry-summary
+      summary->console))
+
+;; Random with 'staffing' keyword and 'negative' rating
+
+(comment
+  (-> DS_joined_compliance
+      (tc/select-rows #(some #{"staffing"} (read-string (% :keywords))))
+      (tc/select-rows #(= "negative" (% :rating)))
+      get-entry-summary
+      summary->console))
+
+;; Random with 'staffing' keyword and 'positive' rating
+
+(comment
+  (-> DS_joined_compliance
+      (tc/select-rows #(some #{"staffing"} (read-string (% :keywords))))
+      (tc/select-rows #(= "positive" (% :rating)))
+      get-entry-summary
+      summary->console))

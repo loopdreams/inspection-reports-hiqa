@@ -2,6 +2,8 @@
   #:nextjournal.clerk{:visibility {:code :fold}, :toc true}
   (:require
    [aerial.hanami.common :as hc]
+   [notebooks.01-general-information :refer [most-recent-resident-no]]
+   [hiqa-reports.hiqa-register :refer [DS-hiqa-register]]
    [aerial.hanami.templates :as ht]
    [clojure.string :as str]
    [hiqa-reports.parsers-writers :as dat]
@@ -16,7 +18,6 @@
 ;;
 ;; All raw data from [HIQA inspection reports](https://www.hiqa.ie/reports-and-publications/inspection-reports)
 ;;
-;; [TODO Add link : Supplementary info on methodology around extraction](link).
 ;;
 ;; ## HIQA Regulations
 ;;
@@ -101,6 +102,7 @@
       (tc/select-rows #(= :capacity-and-capability (% :area)))
       (add-percent-noncompliant)
       (tc/drop-columns [:area :number :name])))
+
 
 (defn reg-heatmap-char [data title]
   {:$schema "https://vega.github.io/schema/vega-lite/v5.json"
@@ -564,7 +566,7 @@
   (let [e-dub (remove #(= "Dublin" (:address-of-centre %)) entries)
         dubs (filter #(= "Dublin" (:address-of-centre %)) entries)
         c (count dubs)
-        tot (reduce + (map val dubs))
+        tot (reduce + (map #(% val) dubs))
         avg (float (/ tot c))]
     (conj e-dub {:address-of-centre "Dublin" val avg})))
 
@@ -602,35 +604,51 @@
 
 (defn convert-%-to-string [DS]
   (-> DS
-      (tc/map-columns :percent-noncompliant [:percent-noncompliant]
+      (tc/map-columns "Percent Not compliant" [:percent-noncompliant]
                        #(format "%.1f" %))
-      (tc/map-columns :percent-fully-compliant [:percent-fully-compliant]
+      (tc/map-columns "Percent Fully compliant" [:percent-fully-compliant]
                       #(format "%.1f" %))))
 
+
+
+(comment
+  (-> dat/DS_pdf_info
+      (dat/agg-compliance-levels-for-reg-by-group 23 :year)
+      (tc/order-by :year :desc)
+      (tc/map-columns "Percent Not compliant" [:percent-noncompliant]
+                      #(format "%.2f" %))
+      (tc/map-columns "Percent Fully compliant" [:percent-fully-compliant]
+                      #(format "%.2f" %))
+      (tc/print-dataset)))
 
 
 (def compliance-tbl-reg-23
   (-> dat/DS_pdf_info
       (dat/agg-compliance-levels-for-reg-by-group 23 :address-of-centre)))
 
+(def compliance-tbl-reg-23-2023
+  (-> dat/DS_pdf_info
+      (tc/select-rows #(= 2023 (% :year)))
+      (dat/agg-compliance-levels-for-reg-by-group 23 :address-of-centre)))
 
 {::clerk/visibility {:result :show}}
 (clerk/table
  (-> compliance-tbl-reg-23
      (tc/order-by :total :desc)
-     (tc/map-columns :percent-noncompliant [:percent-noncompliant]
+     (tc/map-columns "Percent Not compliant" [:percent-noncompliant]
                      #(format "%.2f" %))
-     (tc/map-columns :percent-fully-compliant [:percent-fully-compliant]
+     (tc/map-columns "Percent Fully compliant" [:percent-fully-compliant]
                      #(format "%.2f" %))))
 
 
 
 (clerk/row
  (clerk/vl
-  (area-compliance-map "NonCompliance % Regulation 23" "percent-noncompliant"
+  (area-compliance-map "NonCompliance Regulation 23" "% Not compliant"
                        (county-data
                         (-> compliance-tbl-reg-23
                             (tc/select-columns [:address-of-centre :percent-noncompliant])
+                            (tc/rename-columns {:percent-noncompliant "% Not compliant"})
                             (tc/rows :as-maps)))
                        300
                        300))
@@ -657,10 +675,11 @@
 
 (clerk/row
  (clerk/vl
-  (area-compliance-map "Number of NonCompliant Reg 23" "num-notcompliant"
+  (area-compliance-map "Number of NonCompliant Reg 23" "Not compliant"
                        (county-data
                         (-> compliance-tbl-reg-23
                             (tc/select-columns [:address-of-centre :num-notcompliant])
+                            (tc/rename-columns {:num-notcompliant "Not compliant"})
                             (tc/rows :as-maps)))
                        300
                        300))
@@ -672,10 +691,11 @@
 
 (clerk/row
  (clerk/vl
-  (area-compliance-map "Number of Compliant Reg 23" "num-compliant"
+  (area-compliance-map "Number of Compliant Reg 23" "Compliant"
                        (county-data
                         (-> compliance-tbl-reg-23
                             (tc/select-columns [:address-of-centre :num-compliant])
+                            (tc/rename-columns {:num-compliant "Compliant"})
                             (tc/rows :as-maps)))
                        300
                        300))
@@ -684,6 +704,25 @@
      (tc/select-columns [:address-of-centre :num-compliant])
      (tc/order-by :num-compliant :desc)
      (tc/select-rows (range 10)))))
+
+(comment
+  (-> compliance-tbl-reg-23
+      (tc/order-by :percent-noncompliant :desc)
+      (tc/map-columns :percent-noncompliant [:percent-noncompliant]
+                      #(format "%.2f" %))
+      (tc/map-columns :percent-fully-compliant [:percent-fully-compliant]
+                      #(format "%.2f" %))
+      (tc/print-dataset)))
+
+  
+(comment
+  (-> compliance-tbl-reg-23-2023
+      (tc/order-by :percent-noncompliant :desc)
+      (tc/map-columns :percent-noncompliant [:percent-noncompliant]
+                      #(format "%.2f" %))
+      (tc/map-columns :percent-fully-compliant [:percent-fully-compliant]
+                      #(format "%.2f" %))
+      (tc/print-dataset)))
        
 
 (def compliance-tbl-reg-23-providers
@@ -701,7 +740,7 @@
 ;; **% Fully Compliant** (Top 10)
 (clerk/table
  (-> compliance-tbl-reg-23-providers
-     (tc/order-by :percent-fully-compliant :desc)
+     (tc/order-by [:percent-fully-compliant :num-compliant] :desc)
      (tc/select-rows (range 10))
      convert-%-to-string))
 
@@ -897,61 +936,3 @@
      (tc/select-rows (range 10))
      convert-%-to-string))
 
-;; ### Inspections per Region - REMOVE LATER
-
-{::clerk/visibility {:result :hide}}
-(def DS_dublin_grouped
-  (-> dat/DS_pdf_info
-      (tc/map-columns :area [:address-of-centre]
-                      (fn [v]
-                        (when v
-                          (if (re-find #"Dublin" v)
-                            "Dublin"
-                            v))))))
-
-
-(defn regional-tbl [k name]
-  (-> DS_dublin_grouped
-     (tc/group-by :area)
-     (tc/aggregate-columns [k]
-                           #(count (distinct %)))
-     (tc/rename-columns {:$group-name "Region"
-                         k name})))
-
-(def region-inspections
-  (regional-tbl :report-id "Number of Inspections"))
-(def region-centres
-  (regional-tbl :centre-id "Number of Centres"))
-(def region-providers
-  (regional-tbl :name-of-provider "Number of Providers"))
-
-(def regional-joined
-  (-> region-inspections
-     (tc/full-join region-centres "Region")
-     (tc/full-join region-providers "Region")
-     (tc/order-by ["Number of Inspections"] [:desc])
-     (tc/rows :as-maps)))
-
-{::clerk/visibility {:result :show}}
-(clerk/table
- regional-joined)
-
-(clerk/row
- (clerk/vl
-  (hc/xform
-   ht/bar-chart
-   :DATA regional-joined
-   :X "Region" :XTYPE :nominal :XSORT "-y"
-   :Y "Number of Inspections" :TYPE :quantitative))
- (clerk/vl
-  (hc/xform
-   ht/bar-chart
-   :DATA regional-joined
-   :X "Region" :XTYPE :nominal :XSORT "-y"
-   :Y "Number of Centres" :TYPE :quantitative))
- (clerk/vl
-  (hc/xform
-   ht/bar-chart
-   :DATA regional-joined
-   :X "Region" :XTYPE :nominal :XSORT "-y"
-   :Y "Number of Providers" :TYPE :quantitative)))
