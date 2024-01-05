@@ -562,17 +562,22 @@
 ;;
 
 {::clerk/visibility {:result :hide}}
-(defn average-Dublin [entries val]
-  (let [e-dub (remove #(= "Dublin" (:address-of-centre %)) entries)
+(defn average-Dublin
+  "Vals are other keys in the map that have integers as values"
+  [entries vals]
+  (let [ex-dub (remove #(= "Dublin" (:address-of-centre %)) entries)
         dubs (filter #(= "Dublin" (:address-of-centre %)) entries)
         c (count dubs)
-        tot (reduce + (map #(% val) dubs))
-        avg (float (/ tot c))]
-    (conj e-dub {:address-of-centre "Dublin" val avg})))
-
+        values (for [v vals]
+                 (map #(% v) dubs))
+        values (map #(reduce + %) values)
+        averages (map #(if (= %2 :total) %1 (Math/round (float (/ %1 c)))) values vals)]
+    (conj ex-dub
+          (merge {:address-of-centre "Dublin"}
+                 (zipmap vals averages)))))
 
 (defn county-data [entries]
-  (let [val (second (keys (first entries)))]
+  (let [vals (keys (dissoc (first entries) :address-of-centre))]
     (average-Dublin
      (reduce (fn [result entry]
                (if-not (:address-of-centre entry) result
@@ -583,7 +588,7 @@
                            (conj result entry)))))
              []
              entries)
-     val)))
+     vals)))
 
 
 (defn area-compliance-map [title type values h w]
@@ -714,15 +719,52 @@
                       #(format "%.2f" %))
       (tc/print-dataset)))
 
+(comment
+  (-> compliance-tbl-reg-23
+      (tc/order-by :percent-noncompliant :desc)
+      (tc/map-columns :percent-noncompliant [:percent-noncompliant]
+                      #(format "%.2f" %))
+      (tc/select-columns [:address-of-centre :total :percent-noncompliant])
+      (tc/rename-columns {:address-of-centre "Region"
+                          :total "Total Checks for Governance"
+                          :percent-noncompliant "% Non compliant"})
+      (tc/print-dataset {:print-index-range 50})))
+
+(comment
+  (-> compliance-tbl-reg-23
+      (tc/select-columns [:address-of-centre :total :percent-noncompliant])
+      (tc/rows :as-maps)
+      county-data
+      tc/dataset
+      (tc/order-by :percent-noncompliant :desc)
+      (tc/map-columns :percent-noncompliant [:percent-noncompliant]
+                      #(format "%.2f" %))
+      (tc/rename-columns {:address-of-centre "Region"
+                          :total "Total Checks for Governance"
+                          :percent-noncompliant "% Non compliant"})
+      (tc/print-dataset {:print-index-range 50})))
+
+
+
   
 (comment
   (-> compliance-tbl-reg-23-2023
+      (tc/select-columns [:address-of-centre :total :percent-noncompliant :percent-fully-compliant])
+      (tc/rows :as-maps)
+      county-data
+      tc/dataset
       (tc/order-by :percent-noncompliant :desc)
       (tc/map-columns :percent-noncompliant [:percent-noncompliant]
                       #(format "%.2f" %))
       (tc/map-columns :percent-fully-compliant [:percent-fully-compliant]
                       #(format "%.2f" %))
-      (tc/print-dataset)))
+      (tc/rename-columns {:address-of-centre "Region"
+                          :total "Total Checks for Governance"
+                          :percent-noncompliant "% Non compliant"
+                          :percent-fully-compliant "% Fully compliant"})
+      (tc/print-dataset {:print-index-range 50})))
+
+
        
 
 (def compliance-tbl-reg-23-providers
