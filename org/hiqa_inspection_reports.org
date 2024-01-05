@@ -46,7 +46,7 @@ Between 2020 and 2023, there were:
 
 For the years 2021 and 2022, the average number of inspections per month was *86*.
 
-#+ATTR_LATEX: :width 7cm :float nil
+#+ATTR_LATEX: :width 6cm :float nil
 [[file:img/01_inspections_by_year.png]]
 
 [[file:img/02_inspections_by_month.png]]
@@ -299,108 +299,136 @@ Indicators of non-compliance include:
 ** By Area
 [[file:img/11_1_reg_23_percent_notitle.png]]
 
-:TODO: Include Totals here...
 #+caption: Governance and Management % Not Compliant (Dublin Grouped)
 #+ATTR_LATEX: :environment longtable
-| Address of Centre | % Not compliant |
-|-------------------+-----------------|
-| Kilkenny          |           37.88 |
-| Cork              |           32.85 |
-| Roscommon         |           30.00 |
-| Clare             |           29.33 |
-| Monaghan          |           27.50 |
-| Wexford           |           25.71 |
-| Limerick          |           24.29 |
-| Longford          |           23.81 |
-| Waterford         |           23.68 |
-| Dublin            |           23.38 |
-| ...               |             ... |
-| Galway            |           18.99 |
-| Cavan             |           18.75 |
-| Carlow            |           18.52 |
-| Westmeath         |           17.82 |
-| Meath             |           15.79 |
-| Louth             |           12.31 |
-| Kildare           |           10.67 |
-| Leitrim           |            4.76 |
-| Sligo             |            4.30 |
-| Laois             |            3.51 |
-| Mayo              |            3.13 |
+| Region    | Total Checks for Governance | % Non compliant |
+|-----------+-----------------------------+-----------------|
+| Kilkenny  |                         132 |           37.88 |
+| Cork      |                         207 |           32.85 |
+| Roscommon |                          40 |           30.00 |
+| Clare     |                          75 |           29.33 |
+| Monaghan  |                          40 |           27.50 |
+| Wexford   |                          70 |           25.71 |
+| Limerick  |                         140 |           24.29 |
+| Longford  |                          21 |           23.81 |
+| Waterford |                          76 |           23.68 |
+| Dublin    |                         524 |           23.00 |
+| Tipperary |                          88 |           21.59 |
+| Kerry     |                          66 |           21.21 |
+| Offaly    |                          45 |           20.00 |
+| Donegal   |                          96 |           19.79 |
+| Wicklow   |                          97 |           19.59 |
+| Galway    |                         158 |           18.99 |
+| Cavan     |                          16 |           18.75 |
+| Carlow    |                          27 |           18.52 |
+| Westmeath |                         101 |           17.82 |
+| Meath     |                         114 |           15.79 |
+| Louth     |                         130 |           12.31 |
+| Kildare   |                         150 |           10.67 |
+| Leitrim   |                          21 |            4.76 |
+| Sligo     |                          93 |            4.30 |
+| Laois     |                          57 |            3.51 |
+| Mayo      |                          64 |            3.13 |
 
 
 #+caption: Governance and Management % Not Compliant (Dublin Ungrouped)
 #+ATTR_LATEX: :environment longtable
-| Address of Centre | % Not compliant |
-|-------------------+-----------------|
-| Dublin 17         |           66.67 |
-| Dublin 4          |           50.00 |
-| Dublin 10         |           50.00 |
-| Dublin 15         |           42.62 |
-| Dublin 8          |           40.00 |
-| Kilkenny          |           37.88 |
-| Dublin 20         |           34.21 |
-| Cork              |           32.85 |
-| Dublin 13         |           30.77 |
-| Roscommon         |           30.00 |
-| ...               |             ... |
-| Co. Dublin        |            9.52 |
-| Dublin 16         |            7.14 |
-| Dublin 24         |            7.14 |
-| Dublin 9          |            6.12 |
-| Leitrim           |            4.76 |
-| Sligo             |            4.30 |
-| Laois             |            3.51 |
-| Mayo              |            3.13 |
-| Dublin 11         |            0.00 |
-| Dublin 12         |            0.00 |
-| Dublin 6          |            0.00 |
+| Region     | Total Checks for Governance | % Non compliant |
+|------------+-----------------------------+-----------------|
+| Dublin 17  |                           3 |           66.67 |
+| Dublin 4   |                           2 |           50.00 |
+| Dublin 10  |                           2 |           50.00 |
+| Dublin 15  |                          61 |           42.62 |
+| Dublin 8   |                           5 |           40.00 |
+| Kilkenny   |                         132 |           37.88 |
+| Dublin 20  |                          76 |           34.21 |
+| Cork       |                         207 |           32.85 |
+| Dublin 13  |                          26 |           30.77 |
+| Roscommon  |                          40 |           30.00 |
+| Clare      |                          75 |           29.33 |
+| Monaghan   |                          40 |           27.50 |
+| Wexford    |                          70 |           25.71 |
+| Dublin 7   |                          40 |           25.00 |
+| Dublin 3   |                           8 |           25.00 |
+| Limerick   |                         140 |           24.29 |
+| Longford   |                          21 |           23.81 |
+| Waterford  |                          76 |           23.68 |
+| Dublin 5   |                          34 |           23.53 |
+| Dublin 18  |                           9 |           22.22 |
+| Tipperary  |                          88 |           21.59 |
+| Kerry      |                          66 |           21.21 |
+| Dublin 6w  |                          25 |           20.00 |
+| Offaly     |                          45 |           20.00 |
+| Dublin 14  |                          20 |           20.00 |
+| Donegal    |                          96 |           19.79 |
+| Wicklow    |                          97 |           19.59 |
+| Galway     |                         158 |           18.99 |
+| Cavan      |                          16 |           18.75 |
+| Carlow     |                          27 |           18.52 |
+| Westmeath  |                         101 |           17.82 |
+| Meath      |                         114 |           15.79 |
+| Louth      |                         130 |           12.31 |
+| Dublin 22  |                           9 |           11.11 |
+| Kildare    |                         150 |           10.67 |
+| Co. Dublin |                         105 |            9.52 |
+| Dublin 16  |                          14 |            7.14 |
+| Dublin 24  |                          14 |            7.14 |
+| Dublin 9   |                          49 |            6.12 |
+| Leitrim    |                          21 |            4.76 |
+| Sligo      |                          93 |            4.30 |
+| Laois      |                          57 |            3.51 |
+| Mayo       |                          64 |            3.13 |
+| Dublin 11  |                          10 |            0.00 |
+| Dublin 12  |                          11 |            0.00 |
+| Dublin 6   |                           1 |            0.00 |
 
 
 #+caption: Governance and Management - 2023 Only
-| Address   | Total Inspections | % Not Compliant | % Compliant |
-|-----------+-------------------+-----------------+-------------|
-| Galway    |                41 |           51.22 |       34.15 |
-| Cork      |                54 |           46.30 |        9.26 |
-| Roscommon |                 8 |           37.50 |       25.00 |
-| Kilkenny  |                26 |           34.62 |       34.62 |
-| Clare     |                18 |           33.33 |       55.56 |
-| Dublin 6w |                 6 |           33.33 |       33.33 |
-| Dublin 7  |                 6 |           33.33 |       50.00 |
-| Dublin 5  |                 4 |           25.00 |       50.00 |
-| Limerick  |                35 |           22.86 |       45.71 |
-| Dublin 20 |                 9 |           22.22 |       66.67 |
-| ...       |           .   ... |             ... |         ... |
-| Dublin 22 |                 3 |            0.00 |       66.67 |
-| Dublin 11 |                 2 |            0.00 |       50.00 |
-| Kerry     |                14 |            0.00 |       71.43 |
-| Dublin 9  |                 7 |            0.00 |       71.43 |
-| Dublin 13 |                 1 |            0.00 |      100.00 |
-| Dublin 24 |                 6 |            0.00 |       66.67 |
-| Carlow    |                 5 |            0.00 |       80.00 |
-| Dublin 14 |                 5 |            0.00 |      100.00 |
-| Dublin 8  |                 1 |            0.00 |        0.00 |
-| Dublin 3  |                 2 |            0.00 |      100.00 |
-| Dublin 16 |                 0 |            0.00 |        0.00 |
+#+ATTR_LATEX: :environment longtable
+|    Region | Total Checks for Governance | % Non compliant | % Fully compliant |
+|-----------|----------------------------:|-----------------|-------------------|
+|    Galway |                          41 |           51.22 |             34.15 |
+|      Cork |                          54 |           46.30 |              9.26 |
+| Roscommon |                           8 |           37.50 |             25.00 |
+|  Kilkenny |                          26 |           34.62 |             34.62 |
+|     Clare |                          18 |           33.33 |             55.56 |
+|  Limerick |                          35 |           22.86 |             45.71 |
+| Waterford |                          23 |           21.74 |             52.17 |
+|   Leitrim |                           6 |           16.67 |             33.33 |
+|     Meath |                          26 |           15.38 |             65.38 |
+| Westmeath |                          26 |           15.38 |             65.38 |
+|   Wicklow |                          20 |           15.00 |             35.00 |
+|  Monaghan |                           7 |           14.29 |             42.86 |
+|  Longford |                           7 |           14.29 |             57.14 |
+|   Kildare |                          22 |           13.64 |             63.64 |
+|   Donegal |                          22 |           13.64 |             27.27 |
+|    Offaly |                           8 |           12.50 |             62.50 |
+| Tipperary |                          16 |           12.50 |             75.00 |
+|     Louth |                          33 |           12.12 |             66.67 |
+|     Laois |                          10 |           10.00 |             40.00 |
+|      Mayo |                          10 |           10.00 |             60.00 |
+|   Wexford |                          11 |            9.09 |             81.82 |
+|    Dublin |                          92 |            8.00 |             50.00 |
+|     Sligo |                          20 |            5.00 |             60.00 |
+|     Cavan |                           2 |            0.00 |             50.00 |
+|    Carlow |                           5 |            0.00 |             80.00 |
+|     Kerry |                          14 |            0.00 |             71.43 |
 
 ** By Provider
 
-- C = Compliant
-- SC = Substantially compliant
-- NC = Not compliant
-
 *** Highest % Fully Compliant
-| Provider                                                    | C | NC | SC | % Fully compliant |
-|-------------------------------------------------------------+---+----+----+-------------------|
-| Dara Residential Services                                   | 9 |  0 |  0 |             100.0 |
-| Co Wexford Community Workshop (Enniscorthy) CLG             | 6 |  0 |  0 |             100.0 |
-| MyLife by Estrela Hall Limited                              | 6 |  0 |  0 |             100.0 |
-| Redwood Neurobehavioural Services Unlimited Company         | 4 |  0 |  0 |             100.0 |
-| Lorrequer House                                             | 2 |  0 |  0 |             100.0 |
-| The Anne Sullivan Centre CLG                                | 2 |  0 |  0 |             100.0 |
-| St. Aidan's Day Care Centre Company Limited by Guarantee    | 1 |  0 |  0 |             100.0 |
-| Positive Futures: Achieving Dreams. Transforming Lives. CLG | 1 |  0 |  0 |             100.0 |
-| IRL-IASD CLG                                                | 1 |  0 |  0 |             100.0 |
-| The Multiple Sclerosis Society of Ireland                   | 1 |  0 |  0 |             100.0 |
+| Provider                                                    | Total | % Fully compliant |
+|-------------------------------------------------------------+-------+-------------------|
+| Dara Residential Services                                   |     9 |             100.0 |
+| Co Wexford Community Workshop (Enniscorthy) CLG             |     6 |             100.0 |
+| MyLife by Estrela Hall Limited                              |     6 |             100.0 |
+| Redwood Neurobehavioural Services Unlimited Company         |     4 |             100.0 |
+| Lorrequer House                                             |     2 |             100.0 |
+| The Anne Sullivan Centre CLG                                |     2 |             100.0 |
+| St. Aidan's Day Care Centre Company Limited by Guarantee    |     1 |             100.0 |
+| Positive Futures: Achieving Dreams. Transforming Lives. CLG |     1 |             100.0 |
+| IRL-IASD CLG                                                |     1 |             100.0 |
+| The Multiple Sclerosis Society of Ireland                   |     1 |             100.0 |
 *** Highest % Full Compliant with > 50 Inspections
 
 | Provider                                 | Total | % Not compliant | % Fully compliant |
