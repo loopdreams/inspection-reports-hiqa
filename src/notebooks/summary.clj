@@ -451,10 +451,10 @@
 
 ;; Top keywords for centres with 'positive' rating:
 (kind/vega
-   (sen/word-cloud-2 (take 200 sen/positive-keywords-wc)))
+   (sen/word-cloud-positive (take 200 sen/positive-keywords-wc)))
 
 
 ;; Top keywords for centres with 'negative' rating:
 (kind/vega
-   (sen/word-cloud-2 sen/negative-keywords-wc))
+   (sen/word-cloud-positive sen/negative-keywords-wc))
 

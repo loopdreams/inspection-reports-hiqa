@@ -30,7 +30,6 @@
       (tc/full-join DS_sentiment :report-id)))
 
 
-
 (def prompt-parts
   ["Summarize the following text into 5 keywords reflecting the sentiment of the residents. Do not include the word 'residents' as a keyword."
    "Also provide 3 key phrases reflecting the sentiment of the residents, and"

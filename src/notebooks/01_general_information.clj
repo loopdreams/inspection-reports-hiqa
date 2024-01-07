@@ -31,7 +31,6 @@
 ;;
 ;; This is not an exhaustive list of information that could be extracted from the reports.
 ;;
-;; ;; TODO Information on the 'success rate'
 ;;
 ;; 3,179 / 3,312 - 96% - 31 December 2023
 ;;
@@ -454,7 +453,6 @@
 ;; caveats around this kind of comparison, since the 'number of residents' present at the precise time
 ;; of the inspection is highly dependant on a lot of other factors not captured here.
 ;;
-;; TODO Check these again
 ;;
 (clerk/md
  (str "As a caveat, the number of reports where 'number of residents present' failed to parse was: **"

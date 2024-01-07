@@ -12,9 +12,9 @@
 
 (def all-reports-pdfs (rest (file-seq reports-directory)))
 
-(def json-out-dir "resources/json/")
 (def full-json-out "resources/json/pdf_data_full.json")
 (def full-csv-out "resources/datasets/created/pdf_data_full.csv")
+(def csv-agg-compliance-out "resources/datasets/created/pdf_data_agg_compliance.csv")
 
 (def frontmatter-fields ["Name of designated centre:"
                          "Name of provider:"
@@ -327,7 +327,10 @@
 
 
 
-;; TODO Come back and look into the single nil value in centre-id (dropped in the fn below)
+;; +DONE+ Come back and look into the single nil value in centre-id (dropped in the fn below)
+;; Update: Appears to be a report in different format - https://www.hiqa.ie/system/files?file=inspectionreports/peamount-healthcare-rehabilitation-services-26-august-2020.pdf
+;; Will disregard here.
+
 (defn full-csv-write! []
   (-> (tc/dataset full-json-out)
       (tc/reorder-columns ["centre-id" "centre-ID-OSV"
@@ -357,11 +360,6 @@
 (comment
   (-> DS_pdf_info
       (tc/group-by :year)))
-
-
-  
-
-
 
 
 ;; TODO Delete this later
@@ -415,7 +413,6 @@
       
       
 
-;; TODO consider adding as an output
 (def DS_pdf_info_agg_compliance (-> DS_pdf_info
                                     aggregate-compliance-levels
                                     sum-aggregate-compliance-levels))
@@ -436,6 +433,8 @@
   ;; 3098
   ;; 3180
 
+(-> DS_pdf_info
+    (tc/select-rows #(nil? (% :number-of-residents-present))))
 
 (comment
   (-> (tc/dataset "outputs/pdf_info_reglevels.csv")

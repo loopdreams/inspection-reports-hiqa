@@ -1,5 +1,5 @@
 #+title: Hiqa Inspection Reports - Initial Look
-#+SUBTITLE: Draft Version
+#+SUBTITLE: Draft First Look
 #+LATEX_CLASS: article
 #+LATEX_CLASS_OPTIONS:[a4paper,11pt,twoside]
 #+OPTIONS: toc:t H:3 author:nil
@@ -18,12 +18,13 @@
 #+LaTeX_HEADER: \usepackage[x11names]{xcolor}
 #+LaTeX_HEADER: \hypersetup{linktoc = all, colorlinks = true, urlcolor = DodgerBlue4, citecolor = PaleGreen1, linkcolor = black}
 
+\clearpage
 * Context and Method
 The data below was taken from the [[https://www.hiqa.ie/reports-and-publications/inspection-reports][HIQA Inspection Reports]] for Disability Centres, available on their website in =.pdf= format.
 
-Report URLs are listed under pages for [[https://www.hiqa.ie/find-a-centre][centres]] where an inspection has occurred ([[https://www.hiqa.ie/areas-we-work/find-a-centre/st-dominics-services][example]]). Using the HIQA register for disability centres, it was possible to get the URLs for the centre pages, and from these, the URLs for all inspection  reports.
+Report URLs are listed under pages for [[https://www.hiqa.ie/find-a-centre][centres]] where an inspection has occurred ([[https://www.hiqa.ie/areas-we-work/find-a-centre/st-dominics-services][example]]). Using the HIQA register for disability centres, it was possible to get the URLs for the centre pages, and from these, the URLs for related inspection  reports.
 
-Reports are written according to a **standard template**, making them relatively easy to parse. For the extraction, four main areas of the report were focused on:
+Reports are written according to a standard template, making them relatively easy to parse. For the extraction, four main areas of the report were focused on:
 
 - *"Frontmatter"* area on the first page, including details of the centre id, date of inspection, type of inspection, etc.
 - *Number of residents present* at the time of inspection
@@ -32,7 +33,7 @@ Reports are written according to a **standard template**, making them relatively
 
 This is not an exhaustive list of information that could be extracted from the reports.
 
-As part of this process 3,179 Inspection Reports were gathered/parsed. This compares with 3,312 that appear to be available on the HIQA website (as at 30th December, 2023). In other words, the data covers about 96% of the Inspection Reports for Disability Centres. In the case of the field "Number of Residents Present", there were 41 missing entries out of the 3,179 reports. This was not due to the values missing in the reports themselves, but due to the parsing method.
+As part of this process 3,179 Inspection Reports were gathered/parsed. This compares with 3,312 that appear to be available on the HIQA website (as at 30^{th} December, 2023). In other words, the data covers about 96% of the Inspection Reports for Disability Centres. In the case of the field "Number of Residents Present", there were 41 missing entries out of the 3,179 reports. Upon further inspection, the reason for this appears to be the introduction of a new type of report in 2023; "Report of a Restrictive Practice Thematic Inspection". See example [[https://www.hiqa.ie/system/files?file=inspectionreports/5654-an-diadan-26-september-2023.pdf][here]]. These reports do not record number of residents present, nor compliance with the various regulations. Instead, there is an overall judgment based on the specific criteria of these reports. These specific judgements for thematic inspection reports were not captured here.
 
 The dates of the reports range from *3^{rd} June 2020* - *18^{th} October 2023*.
 
@@ -159,7 +160,7 @@ The rate of non-compliant regulations stayed mostly stable at around 10-11% per 
 
 The most checked capacity and capability regulation across the reports was regulation 23, *governance and management*, which also had the highest rate of non compliance.
 
-The most checked quality and safety regulation across the reports was regulation 27, *protections against infection*. The regulation with the highest rate of non-compliance was regulation 28, *Fire precautions*.
+The most checked quality and safety regulation across the reports was regulation 27, *protections against infection*. The regulation with the highest rate of non-compliance for quality and safety was regulation 28, *Fire precautions*.
 
 #+caption: Capacity and Capability Regulations NonCompliance Rate 2020-2023
 #+ATTR_LATEX: :environment longtable
@@ -200,6 +201,8 @@ The most checked quality and safety regulation across the reports was regulation
 | Personal possessions                                     |               411 |           16.79 |
 | Visits                                                   |               388 |            1.55 |
 | Temporary absence, transition and discharge of residents |               184 |            8.70 |
+
+\clearpage
 
 #+ATTR_LATEX: width \textwidth
 [[file:img/08_compliance_capacity.png]]
@@ -388,34 +391,34 @@ Indicators of non-compliance include:
 
 #+caption: Governance and Management - 2023 Only
 #+ATTR_LATEX: :environment longtable
-|    Region | Total Checks for Governance | % Non compliant | % Fully compliant |
-|-----------|----------------------------:|-----------------|-------------------|
-|    Galway |                          41 |           51.22 |             34.15 |
-|      Cork |                          54 |           46.30 |              9.26 |
+| Region    | Total Checks for Governance | % Non compliant | % Fully compliant |
+|-----------+-----------------------------+-----------------+-------------------|
+| Galway    |                          41 |           51.22 |             34.15 |
+| Cork      |                          54 |           46.30 |              9.26 |
 | Roscommon |                           8 |           37.50 |             25.00 |
-|  Kilkenny |                          26 |           34.62 |             34.62 |
-|     Clare |                          18 |           33.33 |             55.56 |
-|  Limerick |                          35 |           22.86 |             45.71 |
+| Kilkenny  |                          26 |           34.62 |             34.62 |
+| Clare     |                          18 |           33.33 |             55.56 |
+| Limerick  |                          35 |           22.86 |             45.71 |
 | Waterford |                          23 |           21.74 |             52.17 |
-|   Leitrim |                           6 |           16.67 |             33.33 |
-|     Meath |                          26 |           15.38 |             65.38 |
+| Leitrim   |                           6 |           16.67 |             33.33 |
+| Meath     |                          26 |           15.38 |             65.38 |
 | Westmeath |                          26 |           15.38 |             65.38 |
-|   Wicklow |                          20 |           15.00 |             35.00 |
-|  Monaghan |                           7 |           14.29 |             42.86 |
-|  Longford |                           7 |           14.29 |             57.14 |
-|   Kildare |                          22 |           13.64 |             63.64 |
-|   Donegal |                          22 |           13.64 |             27.27 |
-|    Offaly |                           8 |           12.50 |             62.50 |
+| Wicklow   |                          20 |           15.00 |             35.00 |
+| Monaghan  |                           7 |           14.29 |             42.86 |
+| Longford  |                           7 |           14.29 |             57.14 |
+| Kildare   |                          22 |           13.64 |             63.64 |
+| Donegal   |                          22 |           13.64 |             27.27 |
+| Offaly    |                           8 |           12.50 |             62.50 |
 | Tipperary |                          16 |           12.50 |             75.00 |
-|     Louth |                          33 |           12.12 |             66.67 |
-|     Laois |                          10 |           10.00 |             40.00 |
-|      Mayo |                          10 |           10.00 |             60.00 |
-|   Wexford |                          11 |            9.09 |             81.82 |
-|    Dublin |                          92 |            8.00 |             50.00 |
-|     Sligo |                          20 |            5.00 |             60.00 |
-|     Cavan |                           2 |            0.00 |             50.00 |
-|    Carlow |                           5 |            0.00 |             80.00 |
-|     Kerry |                          14 |            0.00 |             71.43 |
+| Louth     |                          33 |           12.12 |             66.67 |
+| Laois     |                          10 |           10.00 |             40.00 |
+| Mayo      |                          10 |           10.00 |             60.00 |
+| Wexford   |                          11 |            9.09 |             81.82 |
+| Dublin    |                          92 |            8.00 |             50.00 |
+| Sligo     |                          20 |            5.00 |             60.00 |
+| Cavan     |                           2 |            0.00 |             50.00 |
+| Carlow    |                           5 |            0.00 |             80.00 |
+| Kerry     |                          14 |            0.00 |             71.43 |
 
 ** By Provider
 
@@ -503,9 +506,9 @@ In other words, the following was asked for:
 There are a couple of major caveats here:
 
 1. I used the least powerful version of GPT. The cost was around $6.69 for 3,733 requests (this included some trail and error requests at the outset). The next most powerful api (=GPT-4=) would have cost around 30x this.
-2. I am not very familiar with the GPT model, especially questions around how best to formulate the prompt. This exercise was primarily exploratory in nature, therefore a limited amount of time was spent engineering the prompt.
+2. This was more of a 'proof of concept' exercise, more work would need to be done on the specfics of the GPT model, especially questions around how best to formulate the prompt. This exercise was primarily exploratory in nature, therefore a limited amount of time was spent engineering the prompt.
 
-The total word count across all the observation sections of the reports was approximately *2,550,376* word. The average word count for the observation sections of the reports was *802.26* words.
+The total word count across all the observation sections of the reports was approximately *2,550,376* words. The average word count for the observation sections of the reports was *802.26* words.
 
 ** Rating
 
@@ -520,7 +523,7 @@ Across inspections in 2021, 2022, and 2023 (the years with most inspections), th
 
 [[file:img/16_rating_area.png]]
 
-These ratings also align with average levels of compliance. Centres with a "positive" rating were on average *73%* fully compliant and *7%* not compliant. Centres with a "negative" rating were on average *34%* fully compliant and *43%* not compliant. Therefore, accepting the limitations of this approach, you could conclude from these ratings, based on AI analysis of user feedback, that higher levels of compliance with the HIQA regulations leads to better user experience.
+These ratings also align with average levels of compliance. Centres with a "positive" rating were on average *73%* fully compliant and *7%* not compliant. Centres with a "negative" rating were on average *34%* fully compliant and *43%* not compliant. Therefore, accepting the limitations of this approach, you could conclude from these AI ratings that higher levels of compliance with the HIQA regulations leads to better user experience.
 
 There is also a very tentative alignment between "positive" ratings and "number of residents present". As can be seen below, "positive" sentiment trends slightly downward in the case of more residents.
 

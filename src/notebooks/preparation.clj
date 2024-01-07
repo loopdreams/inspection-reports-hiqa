@@ -34,7 +34,6 @@
 ;; so I used these URLs to build the list of reports relating to disability services. I then added these on to the Hiqa register to refer back to them later when downloading the reports.
 ;; For reference, here are the first 10 lines of the Hiqa register with the additional report information added.
 ;;
-;; The HIQA register with the additional report addresses is [located here :TODO: add link](link).
 
 (clerk/table
  (-> DS-hiqa-register
@@ -90,7 +89,6 @@
 ;; in cases where the centre is 'Not Compliant' for a regulation, in order to see what kinds of things drive this.
 ;;
 ;; ## Aggregation of compliance levels
-;; TODO
 ;;
 ;; ## Aggregation of sentiment analysis
 ;;
@@ -227,5 +225,3 @@
 ;; ## Outputs
 ;;
 ;; - A version of the HIQA register with links to inspection reports for the centre (csv)
-;; - TODO An aggregation of the __compliance levels__ for each of the regulations (separate page in this notebook)
-;; - TODO A sentiment analysis/keyword analysis or the report sections "What residents told us and what inspectors observed" using chatGPT

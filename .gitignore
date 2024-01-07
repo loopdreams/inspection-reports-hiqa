@@ -21,3 +21,7 @@ creds.edn
 .lsp/
 *.pdf
 inspection_reports/
+backups/
+GPT_responses/
+docs/
+src/notebooks/clay.clj
