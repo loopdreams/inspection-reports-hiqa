@@ -7,7 +7,17 @@
 
 (clerk/table
  (-> dat/DS_pdf_info
-     (tc/info :columns)))
+     (tc/drop-columns :observations)
+     (tc/info)
+     (tc/select-columns
+      [:col-name
+       :n-missing
+       :min
+       :mean
+       :mode
+       :max])))
+
+
 
 (clerk/table
  (-> dat/DS_pdf_info

@@ -481,7 +481,7 @@
                       #(- %1 %2))))
 
 
-(defn totals-present [fn no]
+(defn totals-present [fn no & between]
   (reduce +
           (-> dat/DS_pdf_info
               (tc/drop-missing :number-of-residents-present)
@@ -490,7 +490,9 @@
                              #(most-recent-resident-no
                                (% :date)
                                (% :number-of-residents-present))})
-              (tc/select-rows #(fn no (% :no-residents-most-recent)))
+              (tc/select-rows #(if between
+                                 (fn no (% :no-residents-most-recent) (first between))
+                                 (fn no (% :no-residents-most-recent))))
               :no-residents-most-recent)))
 
 (defn max-occupancy-totals [fn no]
@@ -523,6 +525,8 @@
                        (% :number-of-residents-present))})
       (tc/rename-columns {:$group-name :centre-id})))
 
+
+
 (def no-centres-res-present-congregated
   (-> no-res-most-recent-by-centre
       (tc/select-rows #(< 9 (% :no-residents-most-recent)))
@@ -537,17 +541,40 @@
       distinct
       count))
 
+(def no-centres-res-present-4-or-less
+  (-> no-res-most-recent-by-centre
+      (tc/select-rows #(> 5 (% :no-residents-most-recent)))
+      :centre-id
+      distinct
+      count))
+
+(def no-centres-between-5-and-10
+  (-> no-res-most-recent-by-centre
+      (tc/select-rows #(< 4 (% :no-residents-most-recent) 10))
+      :centre-id
+      distinct
+      count))
+
+
+
 (def congregated-total-present
   (totals-present < 9))
 
 (def decongregated-total-present
   (totals-present > 10))
 
+(def res-present-4-or-less
+  (totals-present > 5))
+
+(def res-present-between-5-and-10
+  (totals-present < 4 10))
+
 (def congregated-max
   (max-occupancy-totals < 9))
 
 (def decongregated-max
   (max-occupancy-totals > 10))
+
 
 
 {::clerk/visibility {:result :show}}

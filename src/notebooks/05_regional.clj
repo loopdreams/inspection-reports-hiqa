@@ -166,6 +166,13 @@
 
   (count (distinct (:centre-id dat/DS_pdf_info))))
 
+(comment
+  (-> dat/DS_pdf_info
+      (tc/select-rows #(re-find #"Cork" (% :address-of-centre)))
+      :centre-id
+      distinct
+      count))
+
 
 (def hiqa-register-regions
   (-> DS-hiqa-register
@@ -240,8 +247,10 @@
             (tc/map-columns :Avg-Res-Per-Centre [:Number_of_Residents_Present :Number_of_Centres]
                             #(float (/ %1 %2)))
             (tc/rows :as-maps))
-  :X :County :XTYPE :nominal :XSORT "-y"
-  :Y :Avg-Res-Per-Centre :YTYPE :quantitative))
+  :WIDTH 600
+  :BACKGROUND "white"
+  :X :County :XTYPE :nominal :XSORT "-y" :XAXIS {:labelAngle -45}
+  :Y :Avg-Res-Per-Centre :YTYPE :quantitative :YTITLE "Avg Residents per Centre"))
 
 (clerk/col
  (clerk/vl
@@ -265,3 +274,48 @@
              (tc/rows :as-maps))
    :Y :County :YTYPE :nominal :YSORT "-x"
    :X :Maximum_Occupancy)))
+
+;; Centres per pop
+(clerk/vl
+ (hc/xform
+  ht/bar-chart
+  :DATA
+  (-> joined-regional-and-pop
+      (tc/map-columns :centres-per-great-extent
+                      [:Number_of_Centres
+                       :Great_Extent]
+                      #(float (/ %1 %2)))
+      (tc/rows :as-maps))
+  :WIDTH 600
+  :BACKGROUND "white"
+  :X :County :XTYPE :nominal :XSORT "-y" :XAXIS {:labelAngle -45}
+  :Y :centres-per-great-extent :YTYPE :quantitative :YTITLE "Centres per Population Disabled to a Great Extent"))
+
+(clerk/vl
+ (hc/xform
+  ht/bar-chart
+  :DATA
+  (-> joined-regional-and-pop
+      (tc/map-columns :centres-per-pop
+                      [:Number_of_Centres
+                       :population]
+                      #(float (/ %1 %2)))
+      (tc/rows :as-maps))
+  :WIDTH 600
+  :BACKGROUND "white"
+  :X :County :XTYPE :nominal :XSORT "-y" :XAXIS {:labelAngle -45}
+  :Y :centres-per-pop :YTYPE :quantitative :YTITLE "Centres per Total Population"))
+
+(clerk/vl
+  (hc/xform
+   ht/bar-chart
+   :DATA
+   (-> joined-regional-and-pop
+       (tc/map-columns :percent-of-pop [:Number_of_Residents_Present :Great_Extent]
+                       #(* 100 (float (/ %1 %2))))
+       (tc/rows :as-maps))
+   :WIDTH 600
+   :BACKGROUND "white"
+   :TITLE "Residents Present as % of Population with Disability to a Great Extent"
+   :X :County :XTYPE :nominal :XSORT "-y"
+   :Y :percent-of-pop :YTITLE "%"))

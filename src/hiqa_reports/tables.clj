@@ -136,7 +136,6 @@
           {}
           entries))
 
-;; TODO Validate this...
 (defn make-regulation-table
   "Group is either :provider, :area or :id"
   [entries reg-no group]

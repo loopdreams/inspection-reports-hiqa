@@ -106,7 +106,6 @@
   (when date
     (str centre-id "-" (jt/format "yyyyMMdd" date))))
 
-;; TODO Further verification on this - test to see if all SJOGs are counted now
 (defn- parse-frontmatter [pdf-text]
   (let [page-1 (first (rest (str/split pdf-text #"Page")))
         info   (->> frontmatter-fields
@@ -363,7 +362,7 @@
 
 
 ;; TODO Delete this later
-(def pdf-info-DB-deprecated (json/parse-string (slurp "outputs/pdf_info.json") true))
+;; (def pdf-info-DB-deprecated (json/parse-string (slurp "outputs/pdf_info.json") true))
 
 (defn aggregate-compliance-levels [DS]
   (-> DS
