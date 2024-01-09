@@ -765,7 +765,7 @@ Below are some *randomized* examples of GPT "summaries", along with a link to th
 #+LaTeX: \appendix
 * Appendix - Dataset Info
 
-The main dataset created from the parsing of the reports can be found at in [[https://github.com/loopdreams/inspection-reports-hiqa/resources/datasets/created/pdf_data_full.csv][csv form on github]].
+The main dataset created from the parsing of the reports can be found at in [[https://github.com/loopdreams/inspection-reports-hiqa/blob/main/resources/datasets/created/pdf_data_full.csv][csv form on github]].
 
 Below is a list of the column headings:
 
