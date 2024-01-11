@@ -1,0 +1,46 @@
+name-of-provider,num-compliant,num-notcompliant,num-substantiallycompliant,total,percent-noncompliant,percent-fully-compliant,reg-name,reg-no
+Health Service Executive,347,65,134,546,11.90476194024086,63.553112745285034,Statement of purpose,3
+Brothers of Charity Services Ireland CLG,483,106,182,771,13.748379051685333,62.645912170410156,Statement of purpose,3
+Nua Healthcare Services Limited,202,7,33,242,2.8925620019435883,83.47107172012329,Statement of purpose,3
+Health Service Executive,335,10,32,377,2.652519941329956,88.85941505432129,Written policies and procedures,4
+Brothers of Charity Services Ireland CLG,423,21,64,508,4.133858159184456,83.26771855354309,Written policies and procedures,4
+Nua Healthcare Services Limited,145,3,18,166,1.8072288483381271,87.34939694404602,Written policies and procedures,4
+Health Service Executive,149,1,1,151,0.6622516550123692,98.67549538612366,Person in charge,14
+Brothers of Charity Services Ireland CLG,221,5,7,233,2.1459227427840233,94.84978318214417,Person in charge,14
+Nua Healthcare Services Limited,69,0,0,69,0.0,100.0,Person in charge,14
+Health Service Executive,196,30,57,283,10.600706934928894,69.25795078277588,Staffing,15
+Brothers of Charity Services Ireland CLG,216,49,67,332,14.759035408496857,65.0602400302887,Staffing,15
+Nua Healthcare Services Limited,99,5,14,118,4.237288236618042,83.89830589294434,Staffing,15
+Nua Healthcare Services Limited,99,1,5,105,0.9523809887468815,94.28571462631226,Training and staff development,16
+Brothers of Charity Services Ireland CLG,175,24,95,294,8.163265138864517,59.52380895614624,Training and staff development,16
+Health Service Executive,149,20,92,261,7.662834972143173,57.08812475204468,Training and staff development,16
+Nua Healthcare Services Limited,28,0,1,29,0.0,96.55172228813171,Directory of residents,19
+Brothers of Charity Services Ireland CLG,51,1,8,60,1.666666753590107,85.00000238418579,Directory of residents,19
+Health Service Executive,37,2,1,40,5.000000074505806,92.5000011920929,Directory of residents,19
+Nua Healthcare Services Limited,5,0,8,13,0.0,38.46153914928436,Records,21
+Brothers of Charity Services Ireland CLG,34,1,17,52,1.9230769947171211,65.38461446762085,Records,21
+Health Service Executive,15,5,12,32,15.625,46.875,Records,21
+Health Service Executive,53,0,0,53,0.0,100.0,Insurance,22
+Brothers of Charity Services Ireland CLG,72,0,0,72,0.0,100.0,Insurance,22
+Nua Healthcare Services Limited,25,0,0,25,0.0,100.0,Insurance,22
+Nua Healthcare Services Limited,99,6,23,128,4.6875,77.34375,Governance and management,23
+Brothers of Charity Services Ireland CLG,140,90,116,346,26.01155936717987,40.46242833137512,Governance and management,23
+Health Service Executive,136,53,114,303,17.491748929023743,44.884487986564636,Governance and management,23
+Health Service Executive,35,5,7,47,10.638298094272614,74.46808218955994,Admissions and contract for the provision of services,24
+Brothers of Charity Services Ireland CLG,40,7,14,61,11.47540956735611,65.57376980781555,Admissions and contract for the provision of services,24
+Nua Healthcare Services Limited,17,1,8,26,3.8461539894342422,65.38461446762085,Admissions and contract for the provision of services,24
+Health Service Executive,8,0,0,8,0.0,100.0,Volunteers,30
+Brothers of Charity Services Ireland CLG,7,0,0,7,0.0,100.0,Volunteers,30
+Nua Healthcare Services Limited,0,0,0,0,0.0,0.0,Volunteers,30
+Nua Healthcare Services Limited,71,8,2,81,9.876543283462524,87.65432238578796,Notification of incidents,31
+Brothers of Charity Services Ireland CLG,147,56,4,207,27.053138613700867,71.01449370384216,Notification of incidents,31
+Health Service Executive,132,19,9,160,11.874999850988388,82.4999988079071,Notification of incidents,31
+Nua Healthcare Services Limited,0,0,0,0,0.0,0.0,Notifications of periods when person in charge is absent,32
+Brothers of Charity Services Ireland CLG,16,1,0,17,5.882352963089943,94.11764740943909,Notifications of periods when person in charge is absent,32
+Health Service Executive,8,0,0,8,0.0,100.0,Notifications of periods when person in charge is absent,32
+Nua Healthcare Services Limited,0,0,0,0,0.0,0.0,Notifications of procedures and arrangements for periods when person in charge is absent,33
+Brothers of Charity Services Ireland CLG,14,0,0,14,0.0,100.0,Notifications of procedures and arrangements for periods when person in charge is absent,33
+Health Service Executive,8,0,0,8,0.0,100.0,Notifications of procedures and arrangements for periods when person in charge is absent,33
+Nua Healthcare Services Limited,51,2,5,58,3.448275849223137,87.93103694915771,Complaints procedure,34
+Brothers of Charity Services Ireland CLG,141,7,21,169,4.1420117020606995,83.4319531917572,Complaints procedure,34
+Health Service Executive,114,3,13,130,2.3076923564076424,87.69230842590332,Complaints procedure,34

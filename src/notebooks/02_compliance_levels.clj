@@ -978,3 +978,31 @@
      (tc/select-rows (range 10))
      convert-%-to-string))
 
+;; Comparison Compliance Across regs for key centres
+
+(def DS_comparison_providers
+  (-> dat/DS_pdf_info_agg_compliance
+      (tc/drop-columns :observations)
+      (tc/select-rows #(some #{(% :name-of-provider)}
+                             ["Nua Healthcare Services Limited"
+                               "Brothers of Charity Services Ireland CLG"
+                               "Health Service Executive"]))))
+
+
+(defn provider-compaison [regs]
+  (-> (tc/dataset
+       (reduce concat
+               (map (fn [[num name]]
+                      (-> DS_comparison_providers
+                          (dat/agg-compliance-levels-for-reg-by-group num :name-of-provider)
+                          (tc/add-column :reg-name name)
+                          (tc/add-column :reg-no num)
+                          (tc/rows :as-maps)))
+                    regs)))
+      (tc/order-by :reg-no)))
+
+(comment
+  (-> (provider-compaison (:capacity-and-capability dat/hiqa-regulations))
+      (tc/write! "resources/datasets/created/capacity_comparison.csv"))
+  (-> (provider-compaison (:quality-and-safety dat/hiqa-regulations))
+      (tc/write! "resources/datasets/created/quality_comparison.csv")))
